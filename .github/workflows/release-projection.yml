@@ -1,4 +1,4 @@
-name: Plugin release event pilot
+name: Plugin release projection
 
 on:
   workflow_dispatch:
@@ -13,15 +13,11 @@ on:
         required: false
         default: false
         type: boolean
-  push:
-    branches:
-      - automation/source-release-event-pilot
-
 permissions:
   contents: read
 
 concurrency:
-  group: plugin-release-event-pilot
+  group: plugin-release-projection
   cancel-in-progress: true
 
 env:
@@ -43,7 +39,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: termbrio/releases
-          ref: dev
+          ref: main
           path: releases
 
       - name: Validate marketplace
@@ -100,27 +96,26 @@ jobs:
               {
                 owner: "termbrio",
                 repo: "releases",
-                event_type: "termbrio-release-pilot",
+                event_type: "termbrio-release",
                 client_payload: clientPayload
               });
 
-      - name: Upload pilot evidence
+      - name: Upload projection evidence
         uses: actions/upload-artifact@v7
         with:
-          name: plugin-release-event-pilot-${{ github.run_id }}
+          name: plugin-release-projection-${{ github.run_id }}
           path: out/
           if-no-files-found: error
           retention-days: 3
 
-      - name: Summarize pilot
+      - name: Summarize projection
         shell: pwsh
         run: |
           @"
-          ## Plugin release event pilot
+          ## Plugin release projection
 
           - Cross-repo plugin event: validated
           - Repository dispatch: ${{ inputs.dispatch && 'sent with GitHub App token' || 'not requested' }}
-          - External mutations: none
           - GitHub Release creation: disabled
-          - Website deployment: disabled
+          - Binary publication: disabled
           "@ >> $env:GITHUB_STEP_SUMMARY
