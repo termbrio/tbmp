@@ -32,3 +32,8 @@ jobs:
           Get-Content plugins/termbrio-team/.codex-plugin/plugin.json -Raw | ConvertFrom-Json | Out-Null
           Get-Content plugins/termbrio-team/.claude-plugin/plugin.json -Raw | ConvertFrom-Json | Out-Null
           & scripts/validate-termbrio-marketplace.ps1
+
+      - name: Validate plugin release contract
+        shell: pwsh
+        run: |
+          & scripts/plugin-release-contract-tests.ps1

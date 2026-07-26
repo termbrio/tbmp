@@ -54,7 +54,15 @@ if ($ReleaseVersion -notmatch $versionPattern -or
     throw 'ReleaseVersion must be a semantic version without build metadata.'
 }
 
-$expectedTag = "plugins-v$ReleaseVersion"
+$codexBaseVersion = $codexVersion -replace '\+.*$', ''
+if ($codexBaseVersion -ne $ReleaseVersion -or
+    $claudeVersion -ne $ReleaseVersion) {
+    throw (
+        "ReleaseVersion '$ReleaseVersion' must match the Codex base version " +
+        "'$codexBaseVersion' and Claude version '$claudeVersion'.")
+}
+
+$expectedTag = "v$ReleaseVersion"
 if ([string]::IsNullOrWhiteSpace($ReleaseTag)) {
     $ReleaseTag = $expectedTag
 }
@@ -88,6 +96,11 @@ if (-not [string]::IsNullOrWhiteSpace($ReleaseUrl)) {
     }
 
     $normalizedReleaseUrl = $uri.AbsoluteUri
+    $expectedReleaseUrl =
+        "https://github.com/termbrio/tbmp/releases/tag/$expectedTag"
+    if ($normalizedReleaseUrl.TrimEnd('/') -ne $expectedReleaseUrl) {
+        throw "ReleaseUrl must be $expectedReleaseUrl."
+    }
 }
 
 $event = [ordered]@{
