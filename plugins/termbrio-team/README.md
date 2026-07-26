@@ -1,10 +1,14 @@
 # Termbrio Team Plugin
 
-This plugin adds three deliberately separate agent behaviors:
+This plugin adds three deliberately separate agent behaviors through the
+following skills:
 
-- general Termbrio operation through the `tb` CLI;
-- member-scoped TeamRelay messaging;
-- explicitly assigned Team Orchestrator work through the `tb` CLI.
+- `termbrio-cli`: general Termbrio operation and troubleshooting through the
+  installed `tb` CLI;
+- `termbrio-team-agent`: member-scoped TeamRelay messaging through the
+  Server-hosted MCP endpoint;
+- `termbrio-team-orchestrator`: explicitly assigned team-definition and
+  lifecycle work through the installed `tb` CLI.
 
 The plugin uses the stateless Streamable HTTP endpoint hosted by the installed `Termbrio.Server`:
 

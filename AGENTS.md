@@ -90,9 +90,11 @@ The clean-history import from the former EKMP repository is recorded in
 reintroduce the old repository as a runtime fallback.
 
 `dev` is the integration branch and `main` is the release branch. Use short
-imperative commits. Release tags use the `vX.Y.Z` plugin version in this source
-repo; public distribution may use the `plugins-vX.Y.Z` namespace in
-`termbrio/releases`.
+imperative commits. Release tags use `vX.Y.Z` in this source repository and
+must point to a commit already integrated into `main`. A tag creates a
+metadata-only GitHub Release here and projects its versions and source link
+through `termbrio/releases`; plugin contents continue to be installed directly
+from this public marketplace repository.
 
 Marketplace installation is anonymous because this repository is public.
 GitHub credentials are required only for contributor and publishing actions.
