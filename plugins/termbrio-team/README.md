@@ -22,29 +22,26 @@ TeamRelay notifications remain reference-only by default; an operator may explic
 
 ## Codex Install
 
-- Authenticate GitHub CLI with access to the private marketplace repo: `gh auth login`.
-- Configure Git to use GitHub CLI credentials when installing the marketplace from GitHub: `gh auth setup-git`.
-- Add or refresh the private marketplace and plugin:
+The marketplace repository is public, so GitHub authentication is not required.
+Add the marketplace and plugin:
 
 ```powershell
 codex plugin marketplace add termbrio/tbmp --ref main
 codex plugin add termbrio-team@tbmp
 ```
 
-If `ekmp` was already added on this machine:
+For updates:
 
 ```powershell
-codex plugin marketplace upgrade ekmp
+codex plugin marketplace upgrade tbmp
 codex plugin add termbrio-team@tbmp
 ```
 
 ## Claude Code Install
 
-Claude Code uses the same skill and HTTP MCP configuration through the Claude marketplace catalog in this repository. For first-time setup:
+Claude Code uses the same skill and HTTP MCP configuration through the Claude marketplace catalog in this repository. GitHub authentication is not required for this public marketplace. For first-time setup:
 
 ```powershell
-gh auth login
-gh auth setup-git
 claude plugin marketplace add https://github.com/termbrio/tbmp.git#main --scope user
 claude plugin install termbrio-team@tbmp --scope user
 ```
@@ -52,7 +49,7 @@ claude plugin install termbrio-team@tbmp --scope user
 For updates:
 
 ```powershell
-claude plugin marketplace update ekmp
+claude plugin marketplace update tbmp
 claude plugin update termbrio-team@tbmp --scope user
 ```
 

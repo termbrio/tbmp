@@ -131,11 +131,19 @@ $forbiddenTerms = @(
 $repositoryFiles = @(
     git -C $resolvedRoot ls-files --cached --others --exclude-standard
 )
+$provenanceFiles = @(
+    'docs/ekmp-to-tbmp-migration.md'
+)
 if ($LASTEXITCODE -ne 0) {
     throw 'Could not enumerate marketplace files.'
 }
 
 foreach ($relativePath in $repositoryFiles) {
+    $normalizedRelativePath = $relativePath.Replace('\', '/')
+    if ($provenanceFiles -contains $normalizedRelativePath) {
+        continue
+    }
+
     $fullPath = Join-Path $resolvedRoot $relativePath
     if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
         continue
