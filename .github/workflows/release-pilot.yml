@@ -78,7 +78,7 @@ jobs:
         id: release-app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ vars.TERMBRIO_RELEASE_APP_ID }}
+          client-id: ${{ vars.TERMBRIO_RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.TERMBRIO_RELEASE_APP_PRIVATE_KEY }}
           owner: termbrio
           repositories: releases
