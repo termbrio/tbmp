@@ -1,6 +1,13 @@
 name: Plugin release event pilot
 
 on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: TBMP release version to project
+        required: true
+        default: "0.4.2"
+        type: string
   push:
     branches:
       - automation/source-release-event-pilot
@@ -13,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PLUGIN_RELEASE_VERSION: 0.4.2
+  PLUGIN_RELEASE_VERSION: ${{ inputs.release_version || '0.4.2' }}
 
 jobs:
   project:
@@ -23,12 +30,12 @@ jobs:
 
     steps:
       - name: Check out marketplace source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: tbmp
 
       - name: Check out release contract
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: termbrio/releases
           ref: dev
@@ -62,7 +69,7 @@ jobs:
             --output ./out/projected/catalog/latest.json
 
       - name: Upload pilot evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-release-event-pilot-${{ github.run_id }}
           path: out/
