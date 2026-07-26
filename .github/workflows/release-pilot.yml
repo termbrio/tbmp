@@ -8,6 +8,11 @@ on:
         required: true
         default: "0.4.2"
         type: string
+      dispatch:
+        description: Send the validated event to termbrio/releases
+        required: false
+        default: false
+        type: boolean
   push:
     branches:
       - automation/source-release-event-pilot
@@ -68,6 +73,37 @@ jobs:
             --catalog ./releases/catalog/latest.json `
             --output ./out/projected/catalog/latest.json
 
+      - name: Create release-ledger App token
+        if: ${{ inputs.dispatch }}
+        id: release-app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.TERMBRIO_RELEASE_APP_ID }}
+          private-key: ${{ secrets.TERMBRIO_RELEASE_APP_PRIVATE_KEY }}
+          owner: termbrio
+          repositories: releases
+
+      - name: Dispatch validated plugin event
+        if: ${{ inputs.dispatch }}
+        uses: actions/github-script@v9
+        env:
+          RELEASE_EVENT_PATH: ./out/events/plugins.json
+        with:
+          github-token: ${{ steps.release-app-token.outputs.token }}
+          script: |
+            const fs = require("node:fs");
+            const clientPayload = JSON.parse(
+              fs.readFileSync(process.env.RELEASE_EVENT_PATH, "utf8"));
+
+            await github.request(
+              "POST /repos/{owner}/{repo}/dispatches",
+              {
+                owner: "termbrio",
+                repo: "releases",
+                event_type: "termbrio-release-pilot",
+                client_payload: clientPayload
+              });
+
       - name: Upload pilot evidence
         uses: actions/upload-artifact@v7
         with:
@@ -83,6 +119,7 @@ jobs:
           ## Plugin release event pilot
 
           - Cross-repo plugin event: validated
+          - Repository dispatch: ${{ inputs.dispatch && 'sent with GitHub App token' || 'not requested' }}
           - External mutations: none
           - GitHub Release creation: disabled
           - Website deployment: disabled
