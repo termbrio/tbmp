@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "termbrio-team",
+  "version": "0.4.2",
+  "displayName": "Termbrio Team",
+  "description": "Termbrio CLI guidance, TeamRelay messaging, and team orchestration for terminal teams.",
+  "author": {
+    "name": "Termbrio"
+  },
+  "homepage": "https://termbrio.dev/apps/tb",
+  "repository": "https://github.com/termbrio/tbmp",
+  "license": "UNLICENSED",
+  "keywords": [
+    "termbrio",
+    "terminal",
+    "team",
+    "mcp",
+    "agents"
+  ]
+}

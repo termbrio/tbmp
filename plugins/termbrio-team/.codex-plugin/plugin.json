@@ -1,0 +1,39 @@
+{
+  "name": "termbrio-team",
+  "version": "0.4.2+codex.20260725",
+  "description": "Termbrio CLI, TeamRelay messaging, and team orchestration for terminal agents.",
+  "author": {
+    "name": "Termbrio"
+  },
+  "homepage": "https://termbrio.dev/apps/tb",
+  "repository": "https://github.com/termbrio/tbmp",
+  "license": "UNLICENSED",
+  "keywords": [
+    "termbrio",
+    "terminal",
+    "team",
+    "mcp",
+    "agents"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Termbrio Team",
+    "shortDescription": "CLI orchestration and messaging for terminal agent teams.",
+    "longDescription": "Adds Termbrio CLI guidance, CLI-first team orchestration, and stateless TeamRelay member messaging through Termbrio Server MCP.",
+    "developerName": "Termbrio",
+    "category": "Productivity",
+    "capabilities": [
+      "MCP",
+      "Hooks",
+      "Skills",
+      "Developer Tools"
+    ],
+    "defaultPrompt": [
+      "Bootstrap Termbrio team identity.",
+      "Read my Termbrio team inbox.",
+      "Define and initialize a server-owned agent team."
+    ],
+    "brandColor": "#0EA5E9"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "tbmp",
+  "description": "Private Claude Code plugins for Termbrio.",
+  "owner": {
+    "name": "Termbrio"
+  },
+  "plugins": [
+    {
+      "name": "termbrio-team",
+      "source": "./plugins/termbrio-team",
+      "description": "Termbrio CLI guidance, TeamRelay messaging, and team orchestration for terminal teams.",
+      "author": {
+        "name": "Termbrio"
+      },
+      "homepage": "https://termbrio.dev/apps/tb",
+      "repository": "https://github.com/termbrio/tbmp",
+      "license": "UNLICENSED",
+      "keywords": [
+        "termbrio",
+        "terminal",
+        "team",
+        "mcp",
+        "agents"
+      ]
+    }
+  ]
+}

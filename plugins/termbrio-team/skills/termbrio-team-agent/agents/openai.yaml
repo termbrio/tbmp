@@ -1,0 +1,4 @@
+interface:
+  display_name: "Termbrio Team Agent"
+  short_description: "Use TeamRelay messaging for terminal agents"
+  default_prompt: "Use $termbrio-team-agent to read my Termbrio team inbox and handle pending messages."

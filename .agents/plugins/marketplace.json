@@ -1,0 +1,20 @@
+{
+  "name": "tbmp",
+  "interface": {
+    "displayName": "Termbrio Plugins"
+  },
+  "plugins": [
+    {
+      "name": "termbrio-team",
+      "source": {
+        "source": "local",
+        "path": "./plugins/termbrio-team"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

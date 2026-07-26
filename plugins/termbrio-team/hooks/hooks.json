@@ -1,0 +1,140 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto SessionStart",
+            "commandWindows": "tb.exe hook emit auto SessionStart",
+            "statusMessage": "Updating Termbrio activity",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto UserPromptSubmit",
+            "commandWindows": "tb.exe hook emit auto UserPromptSubmit",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(request_user_input|AskUserQuestion)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto PreToolUse",
+            "commandWindows": "tb.exe hook emit auto PreToolUse",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto PermissionRequest",
+            "commandWindows": "tb.exe hook emit auto PermissionRequest",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(request_user_input|AskUserQuestion)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto PostToolUse",
+            "commandWindows": "tb.exe hook emit auto PostToolUse",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto PermissionDenied",
+            "commandWindows": "tb.exe hook emit auto PermissionDenied",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto Notification",
+            "commandWindows": "tb.exe hook emit auto Notification",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto Elicitation",
+            "commandWindows": "tb.exe hook emit auto Elicitation",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "ElicitationResult": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto ElicitationResult",
+            "commandWindows": "tb.exe hook emit auto ElicitationResult",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto Stop",
+            "commandWindows": "tb.exe hook emit auto Stop",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tb hook emit auto SessionEnd",
+            "commandWindows": "tb.exe hook emit auto SessionEnd",
+            "timeout": 2
+          }
+        ]
+      }
+    ]
+  }
+}

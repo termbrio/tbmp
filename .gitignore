@@ -1,0 +1,5 @@
+artifacts/
+/.tmp/
+plugins/termbrio-team/assets/releases/*
+!plugins/termbrio-team/assets/releases/
+!plugins/termbrio-team/assets/releases/.gitkeep

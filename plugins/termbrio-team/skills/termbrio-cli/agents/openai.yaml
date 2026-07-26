@@ -1,0 +1,4 @@
+interface:
+  display_name: "Termbrio CLI"
+  short_description: "Operate Termbrio through the tb CLI"
+  default_prompt: "Use $termbrio-cli to inspect my Termbrio sessions and choose the appropriate tb command."
