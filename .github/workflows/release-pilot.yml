@@ -1,0 +1,82 @@
+name: Plugin release event pilot
+
+on:
+  push:
+    branches:
+      - automation/source-release-event-pilot
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-release-event-pilot
+  cancel-in-progress: true
+
+env:
+  PLUGIN_RELEASE_VERSION: 0.4.2
+
+jobs:
+  project:
+    name: Validate cross-repo plugin event
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out marketplace source
+        uses: actions/checkout@v4
+        with:
+          path: tbmp
+
+      - name: Check out release contract
+        uses: actions/checkout@v4
+        with:
+          repository: termbrio/releases
+          ref: dev
+          path: releases
+
+      - name: Validate marketplace
+        shell: pwsh
+        run: |
+          & ./tbmp/scripts/validate-termbrio-marketplace.ps1
+
+      - name: Produce plugin release event
+        shell: pwsh
+        run: |
+          $pluginRevision = git -C ./tbmp rev-parse HEAD
+          & ./tbmp/scripts/export-plugin-release-event.ps1 `
+            -CodexManifestPath `
+              ./tbmp/plugins/termbrio-team/.codex-plugin/plugin.json `
+            -ClaudeManifestPath `
+              ./tbmp/plugins/termbrio-team/.claude-plugin/plugin.json `
+            -ReleaseVersion $env:PLUGIN_RELEASE_VERSION `
+            -SourceRevision $pluginRevision `
+            -OutputPath ./out/events/plugins.json `
+            -Channel pilot
+
+      - name: Validate plugin event against receiver contract
+        shell: pwsh
+        run: |
+          node ./releases/scripts/project-release-event.mjs `
+            --payload ./out/events/plugins.json `
+            --catalog ./releases/catalog/latest.json `
+            --output ./out/projected/catalog/latest.json
+
+      - name: Upload pilot evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-release-event-pilot-${{ github.run_id }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Summarize pilot
+        shell: pwsh
+        run: |
+          @"
+          ## Plugin release event pilot
+
+          - Cross-repo plugin event: validated
+          - External mutations: none
+          - GitHub Release creation: disabled
+          - Website deployment: disabled
+          "@ >> $env:GITHUB_STEP_SUMMARY
