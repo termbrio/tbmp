@@ -20,7 +20,7 @@ There is no standalone MCP runtime, download cache, or stdio process.
 
 The MCP surface is reserved for member-scoped TeamRelay messaging. Team definition and lifecycle management use the installed CLI over the Server's REST contracts; no second management secret or second MCP connection is introduced.
 
-Plugin version 0.4.2 requires Termbrio 0.5.2 or newer for schema-v4 conversation actions, scoped bootstrap, visible-before-ready `tb team start`, lazy managed `tb session resume`, stable provider conversation identity, the current hook contract, exact-message reply acknowledgement, notification templates, and bounded team screen reads. Update the product before relying on those workflows after a plugin-only upgrade.
+Plugin version 0.4.3 requires Termbrio 0.5.2 or newer for schema-v4 conversation actions, scoped bootstrap, visible-before-ready `tb team start`, lazy managed `tb session resume`, stable provider conversation identity, the current hook contract, exact-message reply acknowledgement, notification templates, and bounded team screen reads. Update the product before relying on those workflows after a plugin-only upgrade.
 
 TeamRelay notifications remain reference-only by default; an operator may explicitly opt a global or team template into fixed-frame untrusted `{body}` presentation. Protected MCP tools also expose sender-authorized delivery status, ordered thread reads, exact-message reply acknowledgement, and policy-controlled on-demand `team_read_screen`. A committed MessageId means durable inbox acceptance, while `message_status` reports the separate terminal-notification state. Screen reads are same-host, bounded, untrusted, non-redacting observations and are never a readiness or monitoring loop.
 

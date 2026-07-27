@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "termbrio-team",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "displayName": "Termbrio Team",
   "description": "Termbrio CLI guidance, TeamRelay messaging, and team orchestration for terminal teams.",
   "author": {
