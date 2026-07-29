@@ -2,6 +2,32 @@
 
 Use only the installed `tb` CLI for team definition and lifecycle management. TermbrioTeam MCP is reserved for member-scoped TeamRelay messaging; do not search its catalog for orchestration tools or ask the model to read member credentials for management.
 
+## First Team
+
+Prefer this path when the user describes several members and wants a team definition without an immediate start:
+
+~~~text
+tb --version --json
+tb team layouts --json
+tb team template codex --json
+# Author one schema-v4 FILE from the template and the user's supplied members.
+tb team validate FILE --resolve --json
+tb team import FILE --json
+tb team show TEAM --json
+~~~
+
+Before validation, require each member to make these choices explicit in the file:
+
+- one session binding: `session.id`, `session.ref`, or create/reuse-capable `session.name`;
+- one provider and `assistant.action`;
+- `conversation` for `resume`;
+- `create-once` for a new persistent conversation unless the user asked for ephemeral `create-always`;
+- a real working directory;
+- `permissions.mode: default` unless the user requested another profile;
+- only layout coordinates advertised by `tb team layouts --json`.
+
+If the team already exists, fetch its revision first and use `--replace --revision REVISION` only after intentionally reconciling the stored and file definitions. A successful import completes a definition-only request. Do not run `init` or `start` unless the user separately requested lifecycle mutation.
+
 ## Atomic Definition
 
 ~~~text

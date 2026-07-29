@@ -16,6 +16,16 @@ Manage canonical team definitions and lifecycle through non-interactive `tb` CLI
 
 Never inspect Termbrio databases or source code to reconstruct a team or identity. Never request, read, print, or copy a member's `AGENT_IDENTITY` or `AGENT_PIN` for management.
 
+## Use the First-Team Fast Path
+
+- If the user already supplied member names, working directories, conversation intent, and layout placement, preserve those decisions. Do not rediscover them from databases, source code, provider history, or unrelated team files.
+- For a multi-member team, prefer one portable schema-v4 file over a long sequence of atomic edits. Start from `tb team template PROVIDER --json`, fill every blank `assistant.action`, then run `tb team validate FILE --resolve --json`.
+- Map an explicitly existing conversation to `resume` and an explicitly new persistent member to `create-once`. Ask only when that material intent is genuinely unknown; do not silently turn a missing resume target into a new conversation.
+- Import the validated definition and verify it with `tb team show TEAM --json`. If the user asked only to define, update, or import the team, stop there. Never infer permission to run `init` or `start`.
+- Ask for user input only for a decision that changes the result materially, such as resume versus create, destructive replacement after a revision conflict, or hidden initialization versus visible start.
+
+Read the First Team section in [references/orchestration-workflows.md](references/orchestration-workflows.md) for the compact file workflow and completion checklist.
+
 ## Choose an Editing Workflow
 
 - Use atomic `tb team edit TEAM ...` commands for a small change, or export/edit/validate/import for several related fields.
