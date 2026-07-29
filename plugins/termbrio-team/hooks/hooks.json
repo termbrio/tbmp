@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto SessionStart",
-            "commandWindows": "tb.exe hook emit auto SessionStart",
+            "command": "tbhookemit auto SessionStart",
+            "commandWindows": "tbhookemit.exe auto SessionStart",
             "statusMessage": "Updating Termbrio activity",
             "timeout": 2
           }
@@ -19,8 +19,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto UserPromptSubmit",
-            "commandWindows": "tb.exe hook emit auto UserPromptSubmit",
+            "command": "tbhookemit auto UserPromptSubmit",
+            "commandWindows": "tbhookemit.exe auto UserPromptSubmit",
             "timeout": 2
           }
         ]
@@ -28,12 +28,11 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "^(request_user_input|AskUserQuestion)$",
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto PreToolUse",
-            "commandWindows": "tb.exe hook emit auto PreToolUse",
+            "command": "tbhookemit auto PreToolUse",
+            "commandWindows": "tbhookemit.exe auto PreToolUse",
             "timeout": 2
           }
         ]
@@ -44,8 +43,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto PermissionRequest",
-            "commandWindows": "tb.exe hook emit auto PermissionRequest",
+            "command": "tbhookemit auto PermissionRequest",
+            "commandWindows": "tbhookemit.exe auto PermissionRequest",
             "timeout": 2
           }
         ]
@@ -53,12 +52,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "^(request_user_input|AskUserQuestion)$",
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto PostToolUse",
-            "commandWindows": "tb.exe hook emit auto PostToolUse",
+            "command": "tbhookemit auto PostToolUse",
+            "commandWindows": "tbhookemit.exe auto PostToolUse",
             "timeout": 2
           }
         ]
@@ -69,8 +67,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto PermissionDenied",
-            "commandWindows": "tb.exe hook emit auto PermissionDenied",
+            "command": "tbhookemit auto PermissionDenied",
+            "commandWindows": "tbhookemit.exe auto PermissionDenied",
             "timeout": 2
           }
         ]
@@ -81,8 +79,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto Notification",
-            "commandWindows": "tb.exe hook emit auto Notification",
+            "command": "tbhookemit auto Notification",
+            "commandWindows": "tbhookemit.exe auto Notification",
             "timeout": 2
           }
         ]
@@ -93,8 +91,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto Elicitation",
-            "commandWindows": "tb.exe hook emit auto Elicitation",
+            "command": "tbhookemit auto Elicitation",
+            "commandWindows": "tbhookemit.exe auto Elicitation",
             "timeout": 2
           }
         ]
@@ -105,8 +103,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto ElicitationResult",
-            "commandWindows": "tb.exe hook emit auto ElicitationResult",
+            "command": "tbhookemit auto ElicitationResult",
+            "commandWindows": "tbhookemit.exe auto ElicitationResult",
             "timeout": 2
           }
         ]
@@ -117,8 +115,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto Stop",
-            "commandWindows": "tb.exe hook emit auto Stop",
+            "command": "tbhookemit auto Stop",
+            "commandWindows": "tbhookemit.exe auto Stop",
             "timeout": 2
           }
         ]
@@ -129,8 +127,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "tb hook emit auto SessionEnd",
-            "commandWindows": "tb.exe hook emit auto SessionEnd",
+            "command": "tbhookemit auto SessionEnd",
+            "commandWindows": "tbhookemit.exe auto SessionEnd",
             "timeout": 2
           }
         ]

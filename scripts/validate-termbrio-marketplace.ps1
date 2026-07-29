@@ -105,9 +105,49 @@ Assert-Equal -Expected 'http://127.0.0.1:56789/mcp' `
     -Actual $mcp.mcpServers.TermbrioTeam.url `
     -Message 'Unexpected TermbrioTeam MCP endpoint.'
 
-if ($null -eq $hooks.hooks.SessionStart -or
-    $null -eq $hooks.hooks.UserPromptSubmit) {
-    throw 'Required Termbrio activity hooks are missing.'
+$requiredHookEvents = @(
+    'SessionStart',
+    'UserPromptSubmit',
+    'PreToolUse',
+    'PermissionRequest',
+    'PostToolUse',
+    'PermissionDenied',
+    'Notification',
+    'Elicitation',
+    'ElicitationResult',
+    'Stop',
+    'SessionEnd'
+)
+
+foreach ($hookEvent in $requiredHookEvents) {
+    $eventProperty = $hooks.hooks.PSObject.Properties[$hookEvent]
+    if ($null -eq $eventProperty -or
+        $null -eq $eventProperty.Value) {
+        throw "Required Termbrio activity hook is missing: $hookEvent"
+    }
+
+    foreach ($hookGroup in @($eventProperty.Value)) {
+        foreach ($hookCommand in @($hookGroup.hooks)) {
+            Assert-Equal -Expected "tbhookemit auto $hookEvent" `
+                -Actual $hookCommand.command `
+                -Message "Unexpected POSIX command for hook '$hookEvent'."
+            Assert-Equal -Expected "tbhookemit.exe auto $hookEvent" `
+                -Actual $hookCommand.commandWindows `
+                -Message "Unexpected Windows command for hook '$hookEvent'."
+            if ([int]$hookCommand.timeout -gt 2) {
+                throw "Hook '$hookEvent' exceeds the two-second provider deadline."
+            }
+        }
+    }
+}
+
+foreach ($toolEvent in @('PreToolUse', 'PostToolUse')) {
+    $eventGroups = $hooks.hooks.PSObject.Properties[$toolEvent].Value
+    foreach ($hookGroup in @($eventGroups)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$hookGroup.matcher)) {
+            throw "Hook '$toolEvent' must observe all tool transitions."
+        }
+    }
 }
 
 $requiredSkills = @(
