@@ -9,7 +9,7 @@ Manage canonical team definitions and lifecycle through non-interactive `tb` CLI
 
 ## Establish the Contract
 
-1. Run `tb --version --json`, then `tb team --help`. Require Termbrio 0.5.2 or newer for schema-v4 conversation actions, scoped bootstrap, visible-before-ready start, managed provider-resume, and stable conversation-ID workflow. Treat installed-help and capability discovery as a separate guard; the stable `name=tb` field does not relax the version floor. Inspect the installed `schema`, `describe`, and `template` commands before authoring unfamiliar fields.
+1. Run `tb --version --json`, then `tb team --help`. Require Termbrio 0.5.6 or newer for schema-v4 conversation actions, scoped bootstrap, visible-before-ready start, managed provider-resume, and stable conversation-ID workflow. Treat installed-help and capability discovery as a separate guard; the stable `name=tb` field does not relax the version floor. Inspect the installed `schema`, `describe`, and `template` commands before authoring unfamiliar fields.
 2. Run `tb team layouts --json` before choosing an explicit layout strategy; use only capability fields reported by the current platform.
 3. Use `--json` for automation-facing discovery, mutation, and status operations. Read the stable envelope code and process exit code; do not parse human tables or prose errors.
 4. Treat installed CLI help and server-provided schema output as the current contract.

@@ -74,7 +74,7 @@ tb --version --json
 tb server status
 ```
 
-The current plugin requires Termbrio 0.5.2 or newer for schema-v4 conversation
+The current plugin requires Termbrio 0.5.6 or newer for schema-v4 conversation
 actions, managed provider resume, stable conversation identity, notification
 templates, exact-message reply acknowledgement, and bounded team screen reads.
 Plugin and product versions advance independently; each plugin release records
