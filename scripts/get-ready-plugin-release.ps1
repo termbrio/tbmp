@@ -3,7 +3,11 @@
 param(
     [string]$ChangelogRoot,
 
-    [string]$OutputPath
+    [string]$OutputPath,
+
+    [string]$RepositoryRoot,
+
+    [string]$IntegratedRevision = 'HEAD'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,10 +18,15 @@ Set-StrictMode -Version Latest
 if ([string]::IsNullOrWhiteSpace($ChangelogRoot)) {
     $ChangelogRoot = Join-Path (Split-Path -Parent $PSScriptRoot) 'changelog'
 }
+if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
+    $RepositoryRoot = Split-Path -Parent $PSScriptRoot
+}
 
 $selected = Get-TermbrioReadyChangelogEntry `
     -ChangelogRoot $ChangelogRoot `
-    -ExpectedComponent 'plugins'
+    -ExpectedComponent 'plugins' `
+    -RepositoryRoot $RepositoryRoot `
+    -IntegratedRevision $IntegratedRevision
 
 $result = if ($null -eq $selected) {
     [ordered]@{

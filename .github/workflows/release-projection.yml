@@ -61,7 +61,14 @@ jobs:
             throw 'Successful validation revision is no longer integrated into main.'
           }
 
-          $metadata = & ./tbmp/scripts/get-ready-plugin-release.ps1 |
+          git -C ./tbmp fetch origin --tags --force
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+          $metadata = & ./tbmp/scripts/get-ready-plugin-release.ps1 `
+            -RepositoryRoot ./tbmp `
+            -IntegratedRevision $env:SOURCE_REVISION |
             ConvertFrom-Json
           if (-not [bool]$metadata.found) {
             "found=false" >> $env:GITHUB_OUTPUT
@@ -76,10 +83,6 @@ jobs:
           $releaseUrl =
             "https://github.com/${{ github.repository }}/releases/tag/$sourceTag"
 
-          git -C ./tbmp fetch origin --tags --force
-          if ($LASTEXITCODE -ne 0) {
-            exit $LASTEXITCODE
-          }
           $existingTagRevision = git -C ./tbmp rev-list -n 1 $sourceTag 2>$null
           if ($LASTEXITCODE -eq 0 -and
               ([string]$existingTagRevision).Trim() -ne $env:SOURCE_REVISION) {
