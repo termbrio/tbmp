@@ -10,6 +10,7 @@ Use installed help as the authoritative surface:
 | One session liveness | `tb session is-running <session-id>` | exit code |
 | Workspaces | `tb -h workspace` | command-specific `--json` |
 | Pairing/remotes | `tb -h pairing` | explicit pair test/status |
+| Server federation | `tb -h federation` | `tb federation status --json`, then the narrow grant or outbox command |
 | Local views/launches | `tb -h maintenance` | `tb launch list --json` when supported |
 | Teams/layout renderers | `tb -h team` | `tb team status TEAM --json`, `tb team layouts --json` |
 | TeamRelay | `tb team-relay --help` | `agents`, `delivery-status`, `read-thread`, `read-screen`, `send`, and `notification-template`; add `--json` only when the installed leaf help advertises it |
@@ -72,6 +73,51 @@ Do not replace this with regex matching against `tb session list` text.
 
 Follow leaf help for identity options and JSON envelopes. Never print the caller identity/PIN while troubleshooting these commands.
 
+## Server Federation
+
+Start every federation diagnosis with:
+
+```text
+tb federation status --json
+```
+
+Keep the returned objects distinct:
+
+- the local Server id identifies the current Termbrio.Server;
+- a peer is the local Server's outbound route and protected access token for one remote Server;
+- a trusted client is an inbound pairing grant held by the local Server for a remote caller;
+- a relay federation grant scopes which source teams on that trusted caller may reach which local target teams;
+- a runtime federation grant scopes which stable TeamId/MemberId operations an Owner Server may perform on this Runtime Server;
+- an outbox entry records one remote Relay delivery attempt and its retry state.
+
+`team/member@pair` and `member@pair` are routed addresses. They do not create a persistent linked-member entity. The pair alias selects the remote Server transport; team/member names address the recipient on that Server. Use the full team-qualified form when the recipient team is not otherwise unambiguous.
+
+For a message sent from Server A to Server B, require all of the following:
+
+1. A has an outbound peer route to B with `relay-federation` capability.
+2. B has the corresponding non-revoked trusted-client pairing grant for A.
+3. B has a non-revoked relay federation grant referencing that pairing GrantId and matching the source and target teams.
+4. The sender uses `[team/]member@pair` and checks ordinary delivery status plus `tb federation outbox list --json` when remote acceptance is delayed.
+
+Configure the reverse direction separately when B must initiate messages to A. A sending Server always needs an outbound peer; a receiving Server always authorizes the inbound trusted client and scoped grant. `inbound` is the conservative grant direction; use `bidirectional` only when the intended trust relationship is explicitly symmetric and both transport directions exist.
+
+Grant commands are operator mutations:
+
+```text
+tb federation relay-grant list --json
+tb federation relay-grant create --pairing-grant-id PAIRING_GRANT --source-team TEAM_A --target-team TEAM_B --json
+tb federation relay-grant update GRANT_ID --pairing-grant-id PAIRING_GRANT --source-team TEAM_A --target-team TEAM_B --revision REVISION --json
+tb federation relay-grant revoke GRANT_ID --json
+
+tb federation runtime-grant list --json
+tb federation runtime-grant create --pairing-grant-id PAIRING_GRANT --team-id TEAM_ID --member-id MEMBER_ID --operation ensure --operation initialize --operation status --operation stop --json
+tb federation outbox list --json
+```
+
+Create generates a stable federation GrantId. Preserve it from the response. Update requires the current revision; after `409`, fetch status/list again and reconcile intentionally. Never guess a pairing GrantId from a peer alias—read the trusted-client list in federation status on the receiving Server.
+
+Schema-v5 placement stores `runtime.serverId` and `runtime.lifecycleAuthority` on the canonical member definition. Use `tb team status TEAM --json` to read placement reachability and claim state. `team-owner` permits the Owner Server's lifecycle workflow to ensure/status/stop the remote member. `runtime-owner` leaves lifecycle control at the Runtime Server; do not expect owner-side init/start/stop to control that member.
+
 ## Session Resume
 
 `tb session resume <session-target>` is the preferred idempotent entry point for a restorable named terminal. Prefer the returned `canonicalRef`; use `id:<guid>[@pair]` only when discovery confirms that it resolves to an existing named session. Resume rejects id-only sessions and treats a bare GUID as a lexical name. For a managed member: live and ready attaches only; live but not ready keeps the existing runtime, attaches, and queues readiness work; stopped or not-yet-materialized materializes/restores the named session from the canonical definition, then queues provider create/resume readiness using the stored identity when available. The configured conversation name remains a fallback until a provider hook reports a stable provider ID.
@@ -90,3 +136,5 @@ Hook observations are bound to one exact team/member/session/provider instance a
 - `401 Unauthorized`: interpret it in endpoint context. A normal Server or paired request may indicate missing/wrong bearer authority; a protected TeamRelay operation may instead reject the member identity, PIN, or registration. Do not guess, retry alternate identities, or expose the bearer or combined member identity.
 - `404`: verify the current help and the exact server/CLI version.
 - `409`: report the revision or lifecycle conflict and fetch fresh status before retrying.
+- Remote grant rejection: confirm the outbound peer capability, the receiving Server's trusted-client GrantId, the scoped federation grant, and revocation state; do not rotate or broaden credentials as a diagnostic shortcut.
+- Remote outbox retry: distinguish `pending`/retry scheduling from accepted delivery. Preserve MessageId and ClientOperationId when retrying the identical operation; do not create a second logical message after an ambiguous response.

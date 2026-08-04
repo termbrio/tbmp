@@ -1,4 +1,4 @@
 interface:
   display_name: "Termbrio Team Orchestrator"
-  short_description: "Build and manage server-owned agent teams"
-  default_prompt: "Use $termbrio-team-orchestrator to create, initialize, and hand off a Termbrio team."
+  short_description: "Build, place, and manage agent teams"
+  default_prompt: "Use $termbrio-team-orchestrator to create, place, initialize, and hand off a local or federated Termbrio team."

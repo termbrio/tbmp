@@ -10,7 +10,7 @@ Prefer this path when the user describes several members and wants a team defini
 tb --version --json
 tb team layouts --json
 tb team template codex --json
-# Author one schema-v4 FILE from the template and the user's supplied members.
+# Author one current-schema FILE from the template and the user's supplied members.
 tb team validate FILE --resolve --json
 tb team import FILE --json
 tb team show TEAM --json
@@ -67,11 +67,115 @@ Export/import files never contain credentials and never start a session.
 Read the current schema version from `tb team schema --json`, then perform a pure file conversion before import:
 
 ~~~text
-tb team migrate legacy.team.yaml --to-version 4 --output migrated.team.yaml --resolve-sessions --json
+tb team migrate legacy.team.yaml --to-version 5 --output migrated.team.yaml --resolve-sessions --json
 tb team validate migrated.team.yaml --resolve --json
 ~~~
 
 Migration never imports, initializes, or starts the team. Review every warning, especially unresolved or ambiguous session references, before importing the output. Never reuse the input path as the output path.
+
+## Remote Placement and Relay Federation
+
+Use this workflow when a canonical team definition remains on one Owner Server while one or more member sessions run on another Runtime Server, or when independent teams on paired Servers must exchange TeamRelay messages.
+
+### Discover Stable Identities and Authority
+
+Run on every participating Server before writing anything:
+
+~~~text
+tb --version --json
+tb -h federation
+tb federation status --json
+~~~
+
+Require Termbrio 0.5.8 or newer and preserve these distinct values:
+
+- local `serverId` from the Server identity;
+- outbound peer alias and remote peer `serverId`;
+- inbound trusted-client `grantId` for the remote caller;
+- canonical team `teamId` and `ownerServerId`;
+- each placed member's stable `memberId`;
+- federation GrantId and revision.
+
+A peer alias is a transport selector; it is not a ServerId. A trusted-client GrantId authorizes an inbound remote caller; it is not the outbound peer's stored GrantId. Never substitute host names, display names, or member names for stable authorization identities.
+
+Pairing is directional. For every Server that sends requests, require an outbound peer to the receiver with the needed capability. On the receiver, require the matching non-revoked trusted client and a scoped federation grant. Use `relay-federation` for remote messages and `team-member-runtime` for delegated lifecycle. Configure the reverse direction separately when both Servers initiate traffic.
+
+### Author Schema-v5 Placement
+
+Let the Owner Server assign stable ids when creating a new team, then fetch `tb team show TEAM --json` and preserve them. A placed stored definition has this shape:
+
+~~~yaml
+version: 5
+teamId: 019f0000-0000-7000-8000-000000000001
+team: optimate
+ownerServerId: 019f0000-0000-7000-8000-000000000002
+agents:
+  - memberId: 019f0000-0000-7000-8000-000000000003
+    name: CODER
+    runtime:
+      serverId: 019f0000-0000-7000-8000-000000000004
+      lifecycleAuthority: team-owner
+    session:
+      name: CODER
+~~~
+
+Use `team-owner` when the canonical Owner Server must ensure, initialize, inspect status, or stop the remote runtime. Use `runtime-owner` only when those lifecycle decisions remain on the Runtime Server; owner-side lifecycle commands must not be expected to control that member.
+
+For one atomic placement edit on the Owner Server:
+
+~~~text
+tb team edit TEAM set agent MEMBER runtime --server-id RUNTIME_SERVER_ID --lifecycle-authority team-owner --revision TEAM_REVISION --json
+tb team show TEAM --json
+~~~
+
+Use `--clear` to remove the placement block and return the member to ordinary local placement semantics. Do not combine `--clear` with placement values.
+
+### Grant Runtime Delegation
+
+On the Runtime Server, reference the inbound trusted-client PairingGrantId belonging to the Owner Server and scope the grant to the exact stable TeamId and MemberId:
+
+~~~text
+tb federation runtime-grant create --pairing-grant-id OWNER_TRUSTED_CLIENT_GRANT --team-id TEAM_ID --member-id MEMBER_ID --operation ensure --operation initialize --operation status --operation stop --json
+~~~
+
+Grant only the operations required by the requested lifecycle authority. Preserve the generated federation GrantId. To change scope, use `runtime-grant update GRANT_ID ... --revision REVISION`; never revoke and recreate merely to bypass an optimistic-concurrency conflict.
+
+After saving placement and grant state, run the requested owner-side preflight/init/start. Verify:
+
+~~~text
+tb team status TEAM --json
+tb federation status --json
+~~~
+
+Require the placement to report the intended Owner ServerId, Runtime ServerId, lifecycle authority, reachability, and claim/runtime-instance state. An unreachable Runtime Server is not a reason to move ownership silently or create a local fallback session.
+
+### Grant and Route Remote TeamRelay
+
+For messages sent from Server A to Server B, create the relay grant on B using B's inbound trusted-client PairingGrantId for A:
+
+~~~text
+tb federation relay-grant create --pairing-grant-id A_TRUSTED_CLIENT_GRANT_ON_B --source-team TEAM_A --target-team TEAM_B --direction inbound --json
+~~~
+
+Use `*` only after the user explicitly authorizes every team in that source or target scope. Preserve the generated GrantId and use revision-guarded update for later scope changes.
+
+Address the remote recipient through A's outbound alias for B:
+
+~~~text
+tb team dispatch TEAM_A --from SENDER --to TEAM_B/MEMBER@PAIR_B --body "Review the change." --json
+~~~
+
+`TEAM_B/MEMBER@PAIR_B` is a routed address, not a linked-member database record and not a transfer of team ownership. Configure the reverse outbound peer and a separate receiving grant on A when B must initiate replies.
+
+Verify both ordinary message delivery and federation transport state:
+
+~~~text
+tb team-relay delivery-status MESSAGE_ID --json
+tb federation outbox list --json
+tb federation status --json
+~~~
+
+A committed MessageId proves local acceptance. It does not prove that the remote Server accepted the envelope or that terminal notification delivery completed. Preserve MessageId and caller-owned ClientOperationId when retrying the identical ambiguous operation; do not create a duplicate logical message.
 
 ## Conversation Actions and Bootstrap Scope
 
