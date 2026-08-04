@@ -32,6 +32,27 @@ $testRoot = Join-Path ([IO.Path]::GetTempPath()) (
 
 try {
     $eventPath = Join-Path $testRoot 'plugins.json'
+    $changelogPath = Join-Path $testRoot "$releaseVersion.json"
+    $changelog = [ordered]@{
+        schemaVersion = 1
+        component = 'plugins'
+        version = $releaseVersion
+        channel = 'stable'
+        status = 'ready'
+        summary = 'Improves provider integration behavior.'
+        changes = @(
+            [ordered]@{
+                type = 'changed'
+                area = 'team-relay'
+                text = 'Kept provider delivery behavior aligned.'
+                providers = @('codex', 'claude')
+            }
+        )
+    }
+    [IO.File]::WriteAllText(
+        $changelogPath,
+        (($changelog | ConvertTo-Json -Depth 8) + [Environment]::NewLine),
+        [Text.UTF8Encoding]::new($false))
     $releaseUrl =
         "https://github.com/termbrio/tbmp/releases/tag/v$releaseVersion"
     & (Join-Path $PSScriptRoot 'export-plugin-release-event.ps1') `
@@ -42,6 +63,7 @@ try {
         -ReleaseUrl $releaseUrl `
         -SourceRevision $sourceRevision `
         -OutputPath $eventPath `
+        -ChangelogEntryPath $changelogPath `
         -Channel stable `
         -CreatedAt '2026-07-27T00:00:00Z'
 
@@ -52,7 +74,9 @@ try {
         $event.releaseUrl -ne $releaseUrl -or
         $event.plugins.releaseVersion -ne $releaseVersion -or
         $event.plugins.codexVersion -ne [string]$codexManifest.version -or
-        $event.plugins.claudeVersion -ne $releaseVersion) {
+        $event.plugins.claudeVersion -ne $releaseVersion -or
+        $event.source.entryDigest -notmatch '^[0-9a-f]{64}$' -or
+        $event.changelog.summary -ne $changelog.summary) {
         throw 'The exported plugin release event does not match the contract.'
     }
 
@@ -68,6 +92,7 @@ try {
             -ClaudeManifestPath $claudeManifestPath `
             -ReleaseVersion $mismatchedVersion `
             -SourceRevision $sourceRevision `
+            -ChangelogEntryPath $changelogPath `
             -OutputPath (Join-Path $testRoot 'invalid.json')
     }
     catch {
@@ -76,6 +101,29 @@ try {
 
     if (-not $mismatchRejected) {
         throw 'A release version that differs from the manifests was accepted.'
+    }
+
+    $changelog.status = 'draft'
+    [IO.File]::WriteAllText(
+        $changelogPath,
+        (($changelog | ConvertTo-Json -Depth 8) + [Environment]::NewLine),
+        [Text.UTF8Encoding]::new($false))
+    $draftRejected = $false
+    try {
+        & (Join-Path $PSScriptRoot 'export-plugin-release-event.ps1') `
+            -CodexManifestPath $codexManifestPath `
+            -ClaudeManifestPath $claudeManifestPath `
+            -ReleaseVersion $releaseVersion `
+            -SourceRevision $sourceRevision `
+            -OutputPath (Join-Path $testRoot 'draft.json') `
+            -ChangelogEntryPath $changelogPath `
+            -Channel stable
+    }
+    catch {
+        $draftRejected = $true
+    }
+    if (-not $draftRejected) {
+        throw 'A draft plugin changelog unexpectedly produced a release event.'
     }
 }
 finally {

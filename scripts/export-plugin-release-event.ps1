@@ -13,6 +13,9 @@ param(
     [Parameter(Mandatory)]
     [string]$OutputPath,
 
+    [Parameter(Mandatory)]
+    [string]$ChangelogEntryPath,
+
     [ValidateSet('pilot', 'preview', 'stable')]
     [string]$Channel = 'pilot',
 
@@ -28,6 +31,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+
+. (Join-Path $PSScriptRoot 'release-changelog-helpers.ps1')
 
 if ($SourceRevision -notmatch '^[0-9a-fA-F]{40}$') {
     throw 'SourceRevision must be a full Git commit revision.'
@@ -60,6 +65,19 @@ if ($codexBaseVersion -ne $ReleaseVersion -or
     throw (
         "ReleaseVersion '$ReleaseVersion' must match the Codex base version " +
         "'$codexBaseVersion' and Claude version '$claudeVersion'.")
+}
+
+$changelog = Read-TermbrioChangelogEntry `
+    -Path $ChangelogEntryPath `
+    -ExpectedComponent 'plugins'
+if ([string]$changelog.Entry.version -ne $ReleaseVersion) {
+    throw 'Changelog entry version does not match ReleaseVersion.'
+}
+if ([string]$changelog.Entry.channel -ne $Channel) {
+    throw 'Changelog entry channel does not match Channel.'
+}
+if ([string]$changelog.Entry.status -ne 'ready') {
+    throw 'Plugin release event requires a ready changelog entry.'
 }
 
 $expectedTag = "v$ReleaseVersion"
@@ -112,8 +130,10 @@ $event = [ordered]@{
         repository = 'termbrio/tbmp'
         revision = $SourceRevision.ToLowerInvariant()
         tag = $ReleaseTag
+        entryDigest = [string]$changelog.Digest
     }
     releaseUrl = $normalizedReleaseUrl
+    changelog = $changelog.Entry
     plugins = [ordered]@{
         releaseVersion = $ReleaseVersion
         codexVersion = $codexVersion
