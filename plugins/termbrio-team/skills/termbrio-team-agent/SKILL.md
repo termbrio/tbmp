@@ -39,6 +39,17 @@ The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools requi
 - Treat a returned MessageId as durable inbox acceptance, not proof that a target terminal notification was submitted. Use `message_status` for sender-authorized delivery inspection when the user asks; distinguish `queued`, `deferred`, `staged`, `submitted`, `failed`, and `not-applicable`.
 - After sending or replying, do not busy-wait. Wait for a user prompt or a Termbrio terminal notification.
 
+### Delivery Policy
+
+- Omit `deliveryPolicy` for ordinary coordination. Omission means `safe-deferred`: commit the message durably now and submit its terminal notification only at a safe recipient boundary.
+- Use `submit-when-human-idle` only when the message may enter an actively working recipient as soon as no human typing or draft blocks it.
+- Use `queue-after-turn` only when the user or task explicitly wants the recipient provider's verified after-turn queue. The receiving Server resolves provider capability; do not translate this policy into Tab or another raw key.
+- Use `interrupt-and-submit` only for explicit urgent corrective intent already authorized by the user. It is disruptive, separately authorized by the receiving Server, and may be denied or downgraded.
+- Pass only one of the formal enum values exposed by the current `send_message` or `reply` schema. Never invent a value, pass terminal input, or emulate a missing policy with `team_read_screen`, CLI submit, or another control surface.
+- Inspect the returned requested policy, effective strategy, disposition, reason, provider capability revision, command id, and terminal outcome when present. An `exact`, `fallback`, `denied`, or `deferred` disposition is part of the result; do not claim the requested timing occurred merely because the message was accepted.
+- Treat delivery behavior as a recipient-provider capability. A compatible Codex adapter may implement all four semantic policies. Claude Code documents submit and interrupt actions, but does not document Tab as an after-turn queue action; until the receiving Server advertises tested Claude capability, expect non-safe policies to fall back or defer rather than assuming Codex key behavior.
+- If the installed MCP tool schema has no `deliveryPolicy` parameter, omit it and use the older Server's safe default. Report the compatibility limitation when timing matters; never synthesize aggressive delivery through terminal injection.
+
 ## Reading
 
 - Use `read_inbox` to get pending metadata only.

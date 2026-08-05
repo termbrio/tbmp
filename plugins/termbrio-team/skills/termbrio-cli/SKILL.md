@@ -16,7 +16,7 @@ Treat the installed `tb` executable as the command contract. Discover the curren
 5. Inspect one exact terminal with `tb session status <session-target> --json`. Named targets use `[workspace/]session[@pair]`; stable IDs require `id:<guid>[@pair]`. Its exit code reports whether lookup succeeded; use the silent `tb session is-running <sessionId>` predicate only when branching specifically on live runtime state.
 6. Discover layout identity with `tb launch list [target] --json`; treat `launchId` and the stable team/surface key as Termbrio identity, and provider view ids/titles as refreshable bindings.
 7. Discover planned and registered TeamRelay members with `tb team-relay agents [team] --json`. This output intentionally omits PINs and combined identities; never derive or request another member's identity from discovery.
-8. For TeamRelay CLI work, run `tb team-relay --help` and the leaf help for `delivery-status`, `read-thread`, `read-screen`, `send`, or `notification-template`. Use the exact identifiers returned by inbox/thread discovery.
+8. For TeamRelay CLI work, run `tb team-relay --help` and the leaf help for `delivery-status`, `read-thread`, `read-screen`, `send`, or `notification-template`. Use the exact identifiers returned by inbox/thread discovery. Use `--delivery` only when the installed leaf help advertises it.
 9. If the task concerns team definitions, also use `tb team schema`, `tb team describe <section> --json`, or `tb team template <provider> --json`.
 10. For federation operations, run `tb -h federation`, then begin with `tb federation status --json`. Treat its local Server id, peer Server ids, trusted-client pairing grant ids, relay/runtime grants, and outbox entries as distinct identities and states.
 11. Inspect AI-member activity with `tb hook events --json` or narrow by team/member/session. Use `--after` plus bounded `--wait` only for an explicitly requested observer loop; ordinary agents should react to Termbrio notifications and must not poll.
@@ -49,6 +49,16 @@ Use `--restart` only when the user explicitly wants the live terminal process st
 - Treat provider hook state as expiring evidence attached to one team/member/session. Never substitute it for terminal runtime liveness.
 - Report the exact failing command, exit code, and concise Server response when an operation fails.
 - In JSON mode, expect one envelope with `schemaVersion`, `ok`, `code`, `data`, `errors`, and `nextActions`. Treat a missing envelope as an older command surface; do not synthesize fields.
+
+## Choose TeamRelay Delivery Timing
+
+- Omit `--delivery` for ordinary `tb team-relay send` and `tb team dispatch` operations. The default `safe-deferred` policy durably commits now and waits for a safe recipient terminal boundary.
+- Use only the values advertised by installed help: `safe-deferred`, `submit-when-human-idle`, `queue-after-turn`, or `interrupt-and-submit`.
+- Choose `submit-when-human-idle` when active-turn delivery is wanted but human typing or a pending draft must block it. Choose `queue-after-turn` only for an explicitly requested provider queue. Choose `interrupt-and-submit` only for explicit urgent corrective intent and separate mutation authority.
+- Treat these as semantic policies resolved by the receiving Server, never as terminal keys. Do not replace them with `tb team submit`, Tab, Enter, Escape, or provider-specific commands.
+- Inspect JSON delivery fields after the send: requested policy, effective strategy, disposition, reason, provider/capability revision, command id, and terminal outcome. Durable message acceptance does not prove terminal submission, and the Server may visibly fall back, deny, or defer.
+- Do not assume provider parity. Compatible Codex adapters may implement all four policies. Claude Code officially documents submit and interrupt actions but no Tab after-turn queue action; require an advertised, tested Server capability before claiming Claude queue or interrupt-and-submit execution.
+- When `--delivery` is absent from installed help, omit the option and accept the older safe behavior. Do not emulate a non-safe policy through raw terminal input.
 
 ## Validate
 
