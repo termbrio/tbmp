@@ -16,7 +16,7 @@ Treat the installed `tb` executable as the command contract. Discover the curren
 5. Inspect one exact terminal with `tb session status <session-target> --json`. Named targets use `[workspace/]session[@pair]`; stable IDs require `id:<guid>[@pair]`. Its exit code reports whether lookup succeeded; use the silent `tb session is-running <sessionId>` predicate only when branching specifically on live runtime state.
 6. Discover layout identity with `tb launch list [target] --json`; treat `launchId` and the stable team/surface key as Termbrio identity, and provider view ids/titles as refreshable bindings.
 7. Discover planned and registered TeamRelay members with `tb team-relay agents [team] --json`. This output intentionally omits PINs and combined identities; never derive or request another member's identity from discovery.
-8. For TeamRelay CLI work, run `tb team-relay --help` and the leaf help for `delivery-status`, `read-thread`, `read-screen`, `send`, or `notification-template`. Use the exact identifiers returned by inbox/thread discovery. Use `--delivery` only when the installed leaf help advertises it.
+8. For TeamRelay CLI work, run `tb team-relay --help` and the leaf help for `delivery-status`, `read-thread`, `read-screen`, `send`, `notification-mode`, or `notification-template`. Use the exact identifiers returned by inbox/thread discovery. Use `--delivery` only when the installed leaf help advertises it.
 9. If the task concerns team definitions, also use `tb team schema`, `tb team describe <section> --json`, or `tb team template <provider> --json`.
 10. For federation operations, run `tb -h federation`, then begin with `tb federation status --json`. Treat its local Server id, peer Server ids, trusted-client pairing grant ids, relay/runtime grants, and outbox entries as distinct identities and states.
 11. Inspect AI-member activity with `tb hook events --json` or narrow by team/member/session. Use `--after` plus bounded `--wait` only for an explicitly requested observer loop; ordinary agents should react to Termbrio notifications and must not poll.
@@ -59,6 +59,15 @@ Use `--restart` only when the user explicitly wants the live terminal process st
 - Inspect JSON delivery fields after the send: requested policy, effective strategy, disposition, reason, provider/capability revision, command id, and terminal outcome. Durable message acceptance does not prove terminal submission, and the Server may visibly fall back, deny, or defer.
 - Do not assume provider parity. The current Codex adapter implements all four policies. The current Claude adapter implements safe submit, active-turn submit, and Tab-backed after-turn queue. Unsupported Claude interrupt and unknown-provider strategies visibly fall back to `submit-when-human-idle`; verify the returned disposition and effective strategy.
 - When `--delivery` is absent from installed help, omit the option and accept the older safe behavior. Do not emulate a non-safe policy through raw terminal input.
+
+## Control TeamRelay Notification Reception
+
+- Discover the installed contract with `tb team-relay notification-mode --help`. Read the current agent's state with `tb team-relay notification-mode get --team TEAM --name MEMBER --pin PIN --json`.
+- Set `paused` for a temporary current-session pause, `muted` only for an explicitly durable pause that must survive resume/rebind/restart, and `enabled` to resume terminal notifications. These commands authenticate exactly one agent identity; do not use one member's credentials to change another member.
+- Notification mode gates terminal wake/injection only. Inbox acceptance and unread tracking continue in `paused` and `muted` modes.
+- `paused` is RAM/session-scoped and clears on session end or Server restart. `muted` is DB-backed against stable TeamMemberId and remains until explicitly enabled.
+- Enabling may flush pending notifications exactly once as a grouped `submit-when-human-idle` submission. It never retroactively upgrades them to interrupt, and a repeated `enabled` command is idempotent.
+- Notification mode overrides every delivery timing policy, including an otherwise authorized `interrupt-and-submit`. Preserve and report the requested policy together with the deferred reason (`recipient-paused` or `recipient-muted`).
 
 ## Validate
 

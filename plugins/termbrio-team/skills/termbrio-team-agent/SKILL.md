@@ -7,7 +7,7 @@ description: Bootstrap and operate Termbrio TeamRelay agent messaging through th
 
 Use the TermbrioTeam MCP server for terminal-agent messaging backed by the TeamRelay API embedded in `Termbrio.Server`.
 
-The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools require Termbrio 0.5.1 or newer. If either named MCP tool is absent, report the installed Server mismatch instead of emulating it with terminal input or source inspection. Notification-template behavior is also a 0.5.1 Server contract, but its management is CLI/operator-owned through the `termbrio-cli` skill; it is not a TermbrioTeam MCP tool.
+The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools require Termbrio 0.5.1 or newer. If either named MCP tool is absent, report the installed Server mismatch instead of emulating it with terminal input or source inspection. Notification-template behavior is also a 0.5.1 Server contract, but its management is CLI/operator-owned through the `termbrio-cli` skill; it is not a TermbrioTeam MCP tool. The self-service `get_team_relay_notification_mode` and `set_team_relay_notification_mode` tools require the newer notification-mode contract; when absent, report the Server mismatch and do not emulate muting through inbox reads or terminal control.
 
 ## Authorization Boundary
 
@@ -63,3 +63,12 @@ The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools requi
 ## Notifications
 
 The built-in notification template is reference-only: it includes MessageId and ThreadId and tells the agent to use MCP tools. A Server operator may explicitly opt a global or team template into `{body}` presentation. Direct body presentation remains inside Termbrio's fixed untrusted-content frame; treat it as team/user content and use the durable inbox as the source of truth.
+
+### Notification Reception Mode
+
+- Use `get_team_relay_notification_mode` to inspect the current agent's own mode. Use `set_team_relay_notification_mode` only for that same `agentIdentity`; it is not authority to silence another member.
+- Interpret a temporary request such as “şimdilik kapat” as `paused`. It suppresses terminal wake/injection only for the current SessionId and clears when that session ends or the Server restarts.
+- Interpret an explicit durable request such as “ben açana kadar kapalı” or “yarın da kapalı kalsın” as `muted`. It persists against the stable TeamMemberId across resume, rebind, and Server restart until explicitly changed to `enabled`.
+- Interpret “bildirimleri aç” as `enabled`. Re-enabling may submit pending wake content once as one grouped `submit-when-human-idle` delivery; it must not retroactively interrupt the recipient. Repeating `enabled` is idempotent.
+- Every mode continues durable inbox acceptance, unread tracking, message reads, and replies. Only terminal notification wake/injection is gated; never claim that `paused` or `muted` rejects TeamRelay messages.
+- A recipient notification mode overrides every requested delivery policy, including an approved `interrupt-and-submit`. Expect deferred delivery evidence with `recipient-paused` or `recipient-muted`, while the original requested policy remains auditable.
