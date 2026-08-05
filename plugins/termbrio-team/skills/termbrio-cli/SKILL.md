@@ -52,12 +52,12 @@ Use `--restart` only when the user explicitly wants the live terminal process st
 
 ## Choose TeamRelay Delivery Timing
 
-- Omit `--delivery` for ordinary `tb team-relay send` and `tb team dispatch` operations. The default `safe-deferred` policy durably commits now and waits for a safe recipient terminal boundary.
+- Omit `--delivery` for ordinary `tb team-relay send` and `tb team dispatch` operations. The default `submit-when-human-idle` policy durably commits now and waits for the Server's configured human-input quiet period. Select `safe-deferred` explicitly to require a safe recipient boundary.
 - Use only the values advertised by installed help: `safe-deferred`, `submit-when-human-idle`, `queue-after-turn`, or `interrupt-and-submit`.
-- Choose `submit-when-human-idle` when active-turn delivery is wanted but human typing or a pending draft must block it. Choose `queue-after-turn` only for an explicitly requested provider queue. Choose `interrupt-and-submit` only for explicit urgent corrective intent and separate mutation authority.
+- Choose `submit-when-human-idle` when active-turn delivery is wanted but human typing must block it for the configured quiet period. Choose `queue-after-turn` only for an explicitly requested provider queue. Choose `interrupt-and-submit` only after explicit user approval for that disruptive action.
 - Treat these as semantic policies resolved by the receiving Server, never as terminal keys. Do not replace them with `tb team submit`, Tab, Enter, Escape, or provider-specific commands.
 - Inspect JSON delivery fields after the send: requested policy, effective strategy, disposition, reason, provider/capability revision, command id, and terminal outcome. Durable message acceptance does not prove terminal submission, and the Server may visibly fall back, deny, or defer.
-- Do not assume provider parity. Compatible Codex adapters may implement all four policies. Claude Code officially documents submit and interrupt actions but no Tab after-turn queue action; require an advertised, tested Server capability before claiming Claude queue or interrupt-and-submit execution.
+- Do not assume provider parity. The current Codex adapter implements all four policies. The current Claude adapter implements safe submit, active-turn submit, and Tab-backed after-turn queue. Unsupported Claude interrupt and unknown-provider strategies visibly fall back to `submit-when-human-idle`; verify the returned disposition and effective strategy.
 - When `--delivery` is absent from installed help, omit the option and accept the older safe behavior. Do not emulate a non-safe policy through raw terminal input.
 
 ## Validate
