@@ -37,6 +37,7 @@ Read [references/orchestration-workflows.md](references/orchestration-workflows.
 ## Place Members Across Servers
 
 - Keep one canonical team definition on its Owner Server. A member may run locally or on a paired Runtime Server; do not copy the canonical definition into an independent second team merely to place one runtime remotely.
+- Treat the paired Runtime Server as the physical terminal and SessionHost host only. The Owner Server remains the lifecycle, readiness, TeamRelay, and delivery-policy authority for an owner-controlled placed member.
 - Begin with `tb federation status --json` on every participating Server. Record each stable ServerId, outbound peer alias, inbound trusted-client PairingGrantId, peer capabilities, and current grants. Never infer these identities from host names or aliases.
 - Require `relay-federation` for remote TeamRelay transport and `team-member-runtime` for delegated member lifecycle. Pairing is directional: every sending Server needs an outbound peer route, and every receiving/runtime Server needs the matching trusted-client grant plus a scoped federation grant.
 - Configure a relay grant on the receiving Server for each allowed source-team to target-team path. Address a remote recipient as `[team/]member@pair`; treat this as routing syntax, not a durable linked-member record.
@@ -83,6 +84,7 @@ Do not busy-poll. Use lifecycle wait mode when foreground blocking is intended, 
 - Keep initial task submission as terminal input. TeamRelay dispatch is a separate communication operation.
 - For `tb team dispatch`, omit `--delivery` unless the orchestration task explicitly requires different timing; omission uses `submit-when-human-idle`. Use only installed semantic policies and never translate them into provider keys. Request `interrupt-and-submit` only after explicit user approval. Codex supports all four policies; Claude supports safe submit, active-turn submit, and Tab-backed after-turn queue. Inspect visible fallback and audit fields instead of assuming the requested policy executed.
 - Use `[team/]member@pair` only when the message must be routed through a named outbound peer. A remote address selects transport; it does not transfer team ownership or create a member definition.
+- Treat `*` as the canonical team's local member set. It does not include a linked external team; linked members remain explicit routed addresses and are not added to the local runtime definition.
 - Use team status and provider-hook evidence for lifecycle/readiness. Never substitute `team_read_screen` for readiness checks or poll teammate screens; explicit on-demand screen inspection belongs to the TeamRelay member skill.
 
 ## Provider Permissions
