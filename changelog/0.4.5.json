@@ -3,7 +3,7 @@
   "component": "plugins",
   "version": "0.4.5",
   "channel": "preview",
-  "status": "draft",
+  "status": "ready",
   "summary": "Teaches terminal agents the 0.5.8 remote-team and TeamRelay contracts.",
   "changes": [
     {
