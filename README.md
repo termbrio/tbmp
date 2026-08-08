@@ -148,23 +148,36 @@ respective runtimes. See [AGENTS.md](AGENTS.md) for ownership rules.
 
 ```powershell
 pwsh -File scripts/validate-termbrio-marketplace.ps1
+pwsh -File scripts/release-changelog-contract-tests.ps1
 pwsh -File scripts/plugin-release-contract-tests.ps1
+pwsh -File scripts/plugin-release-workflow-tests.ps1
+pwsh -File scripts/plugin-release-workflow-policy-tests.ps1
 ```
 
 Validation checks marketplace identity, provider manifests, shared versions,
-the MCP endpoint, required hooks and skills, hard-cutover rules, and the
-tag-to-catalog release contract.
+the MCP endpoint, required hooks and skills, hard-cutover rules, reviewed
+changelog entries, and the main-to-ledger release contract.
 
 ## Version and release flow
 
-The source tag is `vX.Y.Z` and must point to a commit already integrated into
-`main`. Tagging performs four actions:
+Plugin release prose is reviewed in `changelog/<version>.json`. A normal entry
+stays `draft`; changing exactly one entry to `ready` in the accepted release PR
+is the release intent.
 
-1. validate the marketplace and shared plugin payload;
-2. require `X.Y.Z` to match the Claude version and the base Codex version;
-3. create an assets-free GitHub Release record in this repository;
-4. dispatch the source revision, versions, tag, and release URL through
+After the `ready` entry reaches `main`, the successful `Validate marketplace`
+run owns the exact commit. The release workflow then performs four actions:
+
+1. validate the ready entry against the marketplace versions;
+2. create or verify source tag `vX.Y.Z` on that exact main revision;
+3. create or verify an assets-free GitHub Release record in this repository;
+4. dispatch the source revision, changelog, versions, tag, and release URL through
    `termbrio/releases` to the website.
+
+A successful main validation with no `ready` entry is an explicit no-op. An
+exact targeted rerun verifies matching state and may redispatch it; conflicting
+tags, release metadata, or changelog bytes fail before further mutation. The
+workflow does not wait for downstream runs. Read the releases and website
+workflow summaries once after they finish.
 
 No plugin archive is built. Codex and Claude Code continue to install the
 marketplace contents directly from this repository.

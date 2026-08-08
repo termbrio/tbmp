@@ -1,45 +1,40 @@
 name: Plugin release
 
 on:
-  workflow_dispatch:
-    inputs:
-      release_version:
-        description: Plugin version to validate without publishing
-        required: true
-        default: "0.4.4"
-        type: string
-      channel:
-        description: Catalog channel to validate
-        required: true
-        default: pilot
-        type: choice
-        options:
-          - pilot
-          - preview
-          - stable
-  push:
-    tags:
-      - "v*"
+  workflow_run:
+    workflows:
+      - Validate marketplace
+    types:
+      - completed
+    branches:
+      - main
 
 permissions:
   contents: write
 
 concurrency:
-  group: plugin-release-${{ github.ref }}
+  group: plugin-release-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: false
 
 jobs:
   release:
-    name: Validate and publish plugin release
+    name: Release verified main revision
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    env:
+      RELEASE_REPOSITORY: termbrio/releases
+      SOURCE_REVISION: ${{ github.event.workflow_run.head_sha }}
 
     steps:
-      - name: Check out marketplace source
+      - name: Check out verified marketplace source
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
           path: tbmp
+          ref: ${{ env.SOURCE_REVISION }}
 
       - name: Check out release contract
         uses: actions/checkout@v7
@@ -48,129 +43,263 @@ jobs:
           ref: main
           path: releases
 
-      - name: Resolve release intent
+      - name: Select ready plugin changelog
         id: release
         shell: pwsh
         run: |
-          if ('${{ github.event_name }}' -eq 'push' -and
-              '${{ github.ref_type }}' -eq 'tag') {
-            $sourceTag = '${{ github.ref_name }}'
-            if (-not $sourceTag.StartsWith('v')) {
-              throw "Plugin source tag must start with v: $sourceTag"
-            }
-            $version = $sourceTag.Substring(1)
-            $publish = 'true'
-            $channel = 'pilot'
-          }
-          else {
-            $version = '${{ inputs.release_version }}'
-            $sourceTag = "v$version"
-            $publish = 'false'
-            $channel = '${{ inputs.channel }}'
+          $head = git -C ./tbmp rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $head -ne $env:SOURCE_REVISION) {
+            throw "Checkout revision '$head' does not match successful validation revision '$env:SOURCE_REVISION'."
           }
 
-          if ($version -notmatch
-              '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$') {
-            throw "Unsupported plugin version: $version"
+          git -C ./tbmp fetch origin main --no-tags
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+          git -C ./tbmp merge-base --is-ancestor $env:SOURCE_REVISION origin/main
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Successful validation revision is no longer integrated into main.'
           }
 
+          git -C ./tbmp fetch origin --tags --force
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+          $metadata = & ./tbmp/scripts/get-ready-plugin-release.ps1 `
+            -RepositoryRoot ./tbmp `
+            -IntegratedRevision $env:SOURCE_REVISION |
+            ConvertFrom-Json
+          if (-not [bool]$metadata.found) {
+            "found=false" >> $env:GITHUB_OUTPUT
+            "reason=no-ready-entry" >> $env:GITHUB_OUTPUT
+            Write-Host 'No ready plugin changelog entry; this main revision is not a release.'
+            exit 0
+          }
+
+          $version = [string]$metadata.version
+          $channel = [string]$metadata.channel
+          $sourceTag = "v$version"
           $releaseUrl =
-            "https://github.com/termbrio/tbmp/releases/tag/$sourceTag"
+            "https://github.com/${{ github.repository }}/releases/tag/$sourceTag"
 
+          $existingTagRevision = git -C ./tbmp rev-list -n 1 $sourceTag 2>$null
+          if ($LASTEXITCODE -eq 0 -and
+              ([string]$existingTagRevision).Trim() -ne $env:SOURCE_REVISION) {
+            $tagRevision = ([string]$existingTagRevision).Trim()
+            git -C ./tbmp merge-base --is-ancestor $tagRevision $env:SOURCE_REVISION
+            if ($LASTEXITCODE -ne 0) {
+              throw "Existing plugin tag $sourceTag is not an ancestor of the successful validation revision."
+            }
+
+            $relativeEntryPath = "changelog/$version.json"
+            $taggedBlob = git -C ./tbmp rev-parse "$sourceTag`:$relativeEntryPath"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Existing plugin tag $sourceTag does not contain $relativeEntryPath."
+            }
+            $currentBlob = git -C ./tbmp hash-object $relativeEntryPath
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
+            if (([string]$taggedBlob).Trim() -ne ([string]$currentBlob).Trim()) {
+              throw "Ready plugin changelog entry $relativeEntryPath changed after $sourceTag was created."
+            }
+
+            "found=false" >> $env:GITHUB_OUTPUT
+            "reason=already-published" >> $env:GITHUB_OUTPUT
+            "version=$version" >> $env:GITHUB_OUTPUT
+            "source_tag=$sourceTag" >> $env:GITHUB_OUTPUT
+            Write-Host "$sourceTag already owns the unchanged ready entry; no new release is required."
+            exit 0
+          }
+          if ($LASTEXITCODE -ne 0) {
+            $global:LASTEXITCODE = 0
+          }
+
+          "found=true" >> $env:GITHUB_OUTPUT
+          "reason=release" >> $env:GITHUB_OUTPUT
           "version=$version" >> $env:GITHUB_OUTPUT
+          "channel=$channel" >> $env:GITHUB_OUTPUT
+          "entry_path=$([string]$metadata.path)" >> $env:GITHUB_OUTPUT
+          "entry_digest=$([string]$metadata.entryDigest)" >> $env:GITHUB_OUTPUT
           "source_tag=$sourceTag" >> $env:GITHUB_OUTPUT
           "release_url=$releaseUrl" >> $env:GITHUB_OUTPUT
-          "publish=$publish" >> $env:GITHUB_OUTPUT
-          "channel=$channel" >> $env:GITHUB_OUTPUT
 
-      - name: Verify publication source
-        if: ${{ steps.release.outputs.publish == 'true' }}
+      - name: Summarize non-release main revision
+        if: steps.release.outputs.found != 'true'
         shell: pwsh
-        working-directory: tbmp
         run: |
-          $expectedTag = "v${{ steps.release.outputs.version }}"
-          if ('${{ steps.release.outputs.source_tag }}' -ne $expectedTag) {
-            throw "Source tag must be $expectedTag."
+          $reason = '${{ steps.release.outputs.reason }}'
+          $detail = if ($reason -eq 'already-published') {
+            'The unchanged ready entry is already owned by source tag ${{ steps.release.outputs.source_tag }}. Use the original release run for a targeted retry.'
           }
+          else {
+            'This successful main validation revision contains no ready plugin changelog entry.'
+          }
+          @"
+          ## Plugin release
 
-          git fetch origin main --no-tags
-          git merge-base --is-ancestor HEAD origin/main
+          $detail
+          No tag, GitHub Release record, or downstream dispatch was created.
+          "@ >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Generate deterministic release notes
+        if: steps.release.outputs.found == 'true'
+        id: notes
+        shell: pwsh
+        run: |
+          . ./tbmp/scripts/plugin-release-workflow-helpers.ps1
+          $notesPath = Join-Path $env:RUNNER_TEMP 'plugin-release-notes.md'
+          $notes = New-TermbrioPluginReleaseNotes `
+            -ChangelogEntryPath '${{ steps.release.outputs.entry_path }}' `
+            -SourceRevision $env:SOURCE_REVISION
+          [IO.File]::WriteAllText(
+            $notesPath,
+            $notes,
+            [Text.UTF8Encoding]::new($false))
+          "path=$notesPath" >> $env:GITHUB_OUTPUT
+
+      - name: Inspect existing plugin release record
+        if: steps.release.outputs.found == 'true'
+        id: remote
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ steps.release.outputs.source_tag }}'
+          $releaseJson = gh release view `
+            $tag `
+            --repo '${{ github.repository }}' `
+            --json body,isDraft,isPrerelease,name,tagName,url `
+            2>$null
           if ($LASTEXITCODE -ne 0) {
-            throw 'Plugin tags must identify a commit integrated into main.'
+            "exists=false" >> $env:GITHUB_OUTPUT
+            $global:LASTEXITCODE = 0
+            exit 0
           }
 
-      - name: Validate marketplace
+          $release = $releaseJson | ConvertFrom-Json
+          $expectedPrerelease =
+            '${{ steps.release.outputs.channel }}' -ne 'stable'
+          $expectedNotes = Get-Content `
+            -LiteralPath '${{ steps.notes.outputs.path }}' `
+            -Raw
+          if ([string]$release.tagName -ne $tag -or
+              [string]$release.name -ne 'Termbrio Team plugin ${{ steps.release.outputs.version }}' -or
+              [bool]$release.isDraft -or
+              [bool]$release.isPrerelease -ne $expectedPrerelease -or
+              ([string]$release.body).TrimEnd() -cne $expectedNotes.TrimEnd() -or
+              [string]$release.url -ne '${{ steps.release.outputs.release_url }}') {
+            throw "Existing plugin release metadata conflicts with $tag."
+          }
+
+          "exists=true" >> $env:GITHUB_OUTPUT
+
+      - name: Produce published plugin event
+        if: steps.release.outputs.found == 'true'
         shell: pwsh
         run: |
-          & ./tbmp/scripts/validate-termbrio-marketplace.ps1
+          & ./tbmp/scripts/export-plugin-release-event.ps1 `
+            -CodexManifestPath ./tbmp/plugins/termbrio-team/.codex-plugin/plugin.json `
+            -ClaudeManifestPath ./tbmp/plugins/termbrio-team/.claude-plugin/plugin.json `
+            -ReleaseVersion '${{ steps.release.outputs.version }}' `
+            -ReleaseTag '${{ steps.release.outputs.source_tag }}' `
+            -ReleaseUrl '${{ steps.release.outputs.release_url }}' `
+            -SourceRevision $env:SOURCE_REVISION `
+            -OutputPath ./out/events/plugins.json `
+            -ChangelogEntryPath '${{ steps.release.outputs.entry_path }}' `
+            -Channel '${{ steps.release.outputs.channel }}' `
+            -CreatedAt '${{ github.event.workflow_run.created_at }}'
 
-      - name: Produce plugin release event
-        shell: pwsh
-        run: |
-          $pluginRevision = git -C ./tbmp rev-parse HEAD
-          $arguments = @{
-            CodexManifestPath = './tbmp/plugins/termbrio-team/.codex-plugin/plugin.json'
-            ClaudeManifestPath = './tbmp/plugins/termbrio-team/.claude-plugin/plugin.json'
-            ReleaseVersion = '${{ steps.release.outputs.version }}'
-            ReleaseTag = '${{ steps.release.outputs.source_tag }}'
-            SourceRevision = $pluginRevision
-            OutputPath = './out/events/plugins.json'
-            Channel = '${{ steps.release.outputs.channel }}'
-          }
-          if ('${{ steps.release.outputs.publish }}' -eq 'true') {
-            $arguments.ReleaseUrl =
-              '${{ steps.release.outputs.release_url }}'
-          }
-
-          & ./tbmp/scripts/export-plugin-release-event.ps1 @arguments
-
-      - name: Validate plugin event against receiver contract
+      - name: Validate event against release-ledger contract
+        if: steps.release.outputs.found == 'true'
         run: >-
           node ./releases/scripts/project-release-event.mjs
           --payload ./out/events/plugins.json
           --catalog ./releases/catalog/latest.json
           --output ./out/projected/catalog/latest.json
+          --changelog ./releases/catalog/changelog.json
+          --changelog-output ./out/projected/catalog/changelog.json
 
-      - name: Upload validation evidence
+      - name: Upload pre-publication evidence
+        if: steps.release.outputs.found == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: plugin-release-${{ steps.release.outputs.version }}-${{ github.run_id }}
           path: |
+            ${{ steps.notes.outputs.path }}
             out/events/plugins.json
             out/projected/catalog/latest.json
+            out/projected/catalog/changelog.json
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 14
+          overwrite: true
 
-      - name: Publish marketplace release record
-        if: ${{ steps.release.outputs.publish == 'true' }}
+      - name: Create or verify plugin source tag
+        if: steps.release.outputs.found == 'true'
+        id: source-tag
+        shell: pwsh
+        run: |
+          . ./tbmp/scripts/plugin-release-workflow-helpers.ps1
+          $tag = '${{ steps.release.outputs.source_tag }}'
+          git -C ./tbmp fetch origin --tags --force
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+          $existingRevision = git -C ./tbmp rev-list -n 1 $tag 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            $existingRevision = ''
+            $global:LASTEXITCODE = 0
+          }
+          $disposition = Get-TermbrioSourceTagDisposition `
+            -ExpectedRevision $env:SOURCE_REVISION `
+            -ExistingRevision ([string]$existingRevision).Trim()
+          if ($disposition -eq 'create') {
+            git -C ./tbmp tag $tag $env:SOURCE_REVISION
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
+            git -C ./tbmp push origin "refs/tags/$tag"
+            if ($LASTEXITCODE -ne 0) {
+              git -C ./tbmp fetch origin --tags --force
+              $racedRevision = git -C ./tbmp rev-list -n 1 $tag 2>$null
+              [void](Get-TermbrioSourceTagDisposition `
+                -ExpectedRevision $env:SOURCE_REVISION `
+                -ExistingRevision ([string]$racedRevision).Trim())
+            }
+          }
+          "disposition=$disposition" >> $env:GITHUB_OUTPUT
+
+      - name: Publish or verify plugin release record
+        if: steps.release.outputs.found == 'true'
+        id: plugin-release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $sourceTag = '${{ steps.release.outputs.source_tag }}'
-          $existing = gh release view `
-            $sourceTag `
-            --repo '${{ github.repository }}' `
-            --json tagName 2>$null
-          if ($LASTEXITCODE -ne 0) {
-            $arguments = @(
-              'release', 'create', $sourceTag,
-              '--repo', '${{ github.repository }}',
-              '--verify-tag',
-              '--title', "Termbrio Team plugin ${{ steps.release.outputs.version }}",
-              '--generate-notes'
-            )
-            if ('${{ steps.release.outputs.channel }}' -ne 'stable') {
-              $arguments += '--prerelease'
-            }
-            & gh @arguments
-            if ($LASTEXITCODE -ne 0) {
-              throw "Plugin release publication failed with code $LASTEXITCODE."
-            }
+          if ('${{ steps.remote.outputs.exists }}' -eq 'true') {
+            "disposition=verified" >> $env:GITHUB_OUTPUT
+            exit 0
           }
 
+          $arguments = @(
+            'release', 'create', '${{ steps.release.outputs.source_tag }}',
+            '--repo', '${{ github.repository }}',
+            '--verify-tag',
+            '--title', 'Termbrio Team plugin ${{ steps.release.outputs.version }}',
+            '--notes-file', '${{ steps.notes.outputs.path }}'
+          )
+          if ('${{ steps.release.outputs.channel }}' -ne 'stable') {
+            $arguments += '--prerelease'
+          }
+          & gh @arguments
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+          "disposition=created" >> $env:GITHUB_OUTPUT
+
       - name: Create release-ledger App token
-        if: ${{ steps.release.outputs.publish == 'true' }}
+        if: steps.release.outputs.found == 'true'
         id: release-app-token
         uses: actions/create-github-app-token@v3
         with:
@@ -178,9 +307,10 @@ jobs:
           private-key: ${{ secrets.TERMBRIO_RELEASE_APP_PRIVATE_KEY }}
           owner: termbrio
           repositories: releases
+          permission-contents: write
 
       - name: Dispatch published plugin event
-        if: ${{ steps.release.outputs.publish == 'true' }}
+        if: steps.release.outputs.found == 'true'
         uses: actions/github-script@v9
         env:
           RELEASE_EVENT_PATH: ./out/events/plugins.json
@@ -200,17 +330,24 @@ jobs:
                 client_payload: clientPayload
               });
 
-      - name: Summarize release
+      - name: Summarize release handoff
+        if: steps.release.outputs.found == 'true'
         shell: pwsh
         run: |
           @"
-          ## Plugin release
+          ## Plugin release handoff
 
           - Plugin release: ${{ steps.release.outputs.version }}
+          - Verified source revision: $env:SOURCE_REVISION
           - Source tag: ${{ steps.release.outputs.source_tag }}
           - Channel: ${{ steps.release.outputs.channel }}
-          - Marketplace contents: served directly from termbrio/tbmp
-          - GitHub Release record published: ${{ steps.release.outputs.publish }}
-          - Catalog dispatch sent: ${{ steps.release.outputs.publish }}
+          - Changelog SHA256: ${{ steps.release.outputs.entry_digest }}
+          - Source tag action: ${{ steps.source-tag.outputs.disposition }}
+          - Release record action: ${{ steps.plugin-release.outputs.disposition }}
+          - Releases dispatch: accepted
           - Binary assets: not applicable
+
+          This workflow does not poll downstream workflows. Check the releases and
+          website workflow summaries once when their runs complete. A retry is a
+          targeted rerun; exact existing state is verified and skipped.
           "@ >> $env:GITHUB_STEP_SUMMARY

@@ -1,4 +1,4 @@
 interface:
   display_name: "Termbrio CLI"
-  short_description: "Operate Termbrio through the tb CLI"
-  default_prompt: "Use $termbrio-cli to inspect my Termbrio sessions and choose the appropriate tb command."
+  short_description: "Operate sessions, pairing, and federation"
+  default_prompt: "Use $termbrio-cli to inspect my Termbrio state and choose the appropriate session, pairing, or federation command."

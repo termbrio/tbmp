@@ -1,6 +1,6 @@
 {
   "name": "termbrio-team",
-  "version": "0.4.4+codex.20260729",
+  "version": "0.4.5+codex.20260808",
   "description": "Termbrio CLI, TeamRelay messaging, and team orchestration for terminal agents.",
   "author": {
     "name": "Termbrio"

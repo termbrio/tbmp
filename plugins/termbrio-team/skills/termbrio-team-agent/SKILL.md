@@ -7,7 +7,7 @@ description: Bootstrap and operate Termbrio TeamRelay agent messaging through th
 
 Use the TermbrioTeam MCP server for terminal-agent messaging backed by the TeamRelay API embedded in `Termbrio.Server`.
 
-The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools require Termbrio 0.5.1 or newer. If either named MCP tool is absent, report the installed Server mismatch instead of emulating it with terminal input or source inspection. Notification-template behavior is also a 0.5.1 Server contract, but its management is CLI/operator-owned through the `termbrio-cli` skill; it is not a TermbrioTeam MCP tool.
+The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools require Termbrio 0.5.1 or newer. Canonical federated sender addressing and source-Server reply routing require Termbrio 0.5.8 or newer. If a named MCP tool or address form is absent, report the installed Server mismatch instead of emulating it with terminal input or source inspection. Notification-template behavior is CLI/operator-owned through the `termbrio-cli` skill; it is not a TermbrioTeam MCP tool. The self-service `get_team_relay_notification_mode` and `set_team_relay_notification_mode` tools require the newer notification-mode contract; when absent, report the Server mismatch and do not emulate muting through inbox reads or terminal control.
 
 ## Authorization Boundary
 
@@ -31,13 +31,25 @@ The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools requi
 ## Messaging
 
 - Use `team_info` to list registered members in the current team.
-- Use `send_message` with `recipients` set to a local current-team `[team/]member[@tb]`, comma-separated members, or exact `*` for the current team.
-- Cross-team and remote TeamRelay delivery are deferred. Do not construct or retry those recipient forms.
+- Use `send_message` with `recipients` set to a discovered current-team member, a comma-separated list, or exact `*` for the current primary team only. `*` never expands linked or remote members.
+- Do not invent remote recipient forms. For a message received from another paired Server, preserve the canonical `From` address returned by `read_message` or `read_thread`; reply to that exact source with `inReplyToMessageId` so the Server routes the reply to its origin.
+- A discovered linked member may be addressed explicitly only inside the user's authorized TeamRelay task. A remote inbox/outbox acceptance is separate from terminal notification submission and reply receipt.
 - Generate one caller-owned `clientOperationId` GUID for each send/reply intent. Reuse it only when retrying the identical payload after an ambiguous response; never generate a new ID for that retry.
 - Use `reply` with an existing ThreadId. When replying to one handled delivery, also pass its MessageId as `inReplyToMessageId`; the Server creates the reply and marks only that delivery read atomically. Do not interchange ThreadId and MessageId.
 - If an exact reply fails, treat the source delivery as unread. Do not infer that a whole thread was marked read.
 - Treat a returned MessageId as durable inbox acceptance, not proof that a target terminal notification was submitted. Use `message_status` for sender-authorized delivery inspection when the user asks; distinguish `queued`, `deferred`, `staged`, `submitted`, `failed`, and `not-applicable`.
 - After sending or replying, do not busy-wait. Wait for a user prompt or a Termbrio terminal notification.
+
+### Delivery Policy
+
+- Omit `deliveryPolicy` for ordinary coordination. Omission means `submit-when-human-idle`: commit the message durably now and submit its terminal notification after the configured human-input quiet period. Use `safe-deferred` explicitly when delivery must wait for a safe recipient boundary.
+- Use `submit-when-human-idle` when the message may enter an actively working recipient as soon as human typing has stopped for the Server's configured quiet period.
+- Use `queue-after-turn` only when the user or task explicitly wants the recipient provider's verified after-turn queue. The receiving Server resolves provider capability; do not translate this policy into Tab or another raw key.
+- Use `interrupt-and-submit` only after explicit user approval for that disruptive action. The Server audits every attempt; the skill must not request it without that approval.
+- Pass only one of the formal enum values exposed by the current `send_message` or `reply` schema. Never invent a value, pass terminal input, or emulate a missing policy with `team_read_screen`, CLI submit, or another control surface.
+- Inspect the returned requested policy, effective strategy, disposition, reason, provider capability revision, command id, and terminal outcome when present. An `exact`, `fallback`, `denied`, or `deferred` disposition is part of the result; do not claim the requested timing occurred merely because the message was accepted.
+- Treat delivery behavior as a recipient-provider capability. The current Codex adapter implements all four policies. The current Claude adapter implements safe submit, active-turn submit, and Tab-backed after-turn queue; unsupported Claude interrupt and unknown-provider strategies visibly fall back to `submit-when-human-idle`. Inspect requested policy, effective strategy, disposition, reason, provider revision, command id, and terminal outcome.
+- If the installed MCP tool schema has no `deliveryPolicy` parameter, omit it and use the older Server's safe default. Report the compatibility limitation when timing matters; never synthesize aggressive delivery through terminal injection.
 
 ## Reading
 
@@ -52,3 +64,12 @@ The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools requi
 ## Notifications
 
 The built-in notification template is reference-only: it includes MessageId and ThreadId and tells the agent to use MCP tools. A Server operator may explicitly opt a global or team template into `{body}` presentation. Direct body presentation remains inside Termbrio's fixed untrusted-content frame; treat it as team/user content and use the durable inbox as the source of truth.
+
+### Notification Reception Mode
+
+- Use `get_team_relay_notification_mode` to inspect the current agent's own mode. Use `set_team_relay_notification_mode` only for that same `agentIdentity`; it is not authority to silence another member.
+- Interpret a temporary request such as “şimdilik kapat” as `paused`. It suppresses terminal wake/injection only for the current SessionId and clears when that session ends or the Server restarts.
+- Interpret an explicit durable request such as “ben açana kadar kapalı” or “yarın da kapalı kalsın” as `muted`. It persists against the stable TeamMemberId across resume, rebind, and Server restart until explicitly changed to `enabled`.
+- Interpret “bildirimleri aç” as `enabled`. Re-enabling may submit pending wake content once as one grouped `submit-when-human-idle` delivery; it must not retroactively interrupt the recipient. Repeating `enabled` is idempotent.
+- Every mode continues durable inbox acceptance, unread tracking, message reads, and replies. Only terminal notification wake/injection is gated; never claim that `paused` or `muted` rejects TeamRelay messages.
+- A recipient notification mode overrides every requested delivery policy, including an approved `interrupt-and-submit`. Expect deferred delivery evidence with `recipient-paused` or `recipient-muted`, while the original requested policy remains auditable.

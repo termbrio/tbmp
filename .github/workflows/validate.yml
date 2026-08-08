@@ -36,4 +36,7 @@ jobs:
       - name: Validate plugin release contract
         shell: pwsh
         run: |
+          & scripts/release-changelog-contract-tests.ps1
           & scripts/plugin-release-contract-tests.ps1
+          & scripts/plugin-release-workflow-tests.ps1
+          & scripts/plugin-release-workflow-policy-tests.ps1

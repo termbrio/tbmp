@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "component": "plugins",
+  "version": "0.4.5",
+  "channel": "preview",
+  "status": "ready",
+  "summary": "Teaches terminal agents the 0.5.8 remote-team and TeamRelay contracts.",
+  "changes": [
+    {
+      "type": "changed",
+      "area": "team-relay",
+      "providers": ["codex", "claude"],
+      "text": "Document canonical federated sender addresses, source-Server replies, and exact wildcard recipient scope."
+    },
+    {
+      "type": "changed",
+      "area": "team-orchestration",
+      "providers": ["codex", "claude"],
+      "text": "Document Owner Server authority separately from a paired Runtime Server that hosts a placed terminal."
+    },
+    {
+      "type": "changed",
+      "area": "delivery",
+      "providers": ["codex", "claude"],
+      "text": "Clarify semantic delivery policy outcomes and safe-boundary handling when no working provider turn is observed."
+    }
+  ]
+}

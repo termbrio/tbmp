@@ -10,6 +10,8 @@ if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
 
 $resolvedRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
 
+. (Join-Path $PSScriptRoot 'release-changelog-helpers.ps1')
+
 function Read-JsonFile {
     param(
         [Parameter(Mandatory)]
@@ -144,7 +146,10 @@ foreach ($hookEvent in $requiredHookEvents) {
 foreach ($toolEvent in @('PreToolUse', 'PostToolUse')) {
     $eventGroups = $hooks.hooks.PSObject.Properties[$toolEvent].Value
     foreach ($hookGroup in @($eventGroups)) {
-        if (-not [string]::IsNullOrWhiteSpace([string]$hookGroup.matcher)) {
+        $matcherProperty = $hookGroup.PSObject.Properties['matcher']
+        if ($null -ne $matcherProperty -and
+            -not [string]::IsNullOrWhiteSpace(
+                [string]$matcherProperty.Value)) {
             throw "Hook '$toolEvent' must observe all tool transitions."
         }
     }
@@ -201,5 +206,9 @@ foreach ($relativePath in $repositoryFiles) {
         }
     }
 }
+
+[void](Get-TermbrioReadyChangelogEntry `
+    -ChangelogRoot (Join-Path $resolvedRoot 'changelog') `
+    -ExpectedComponent 'plugins')
 
 Write-Host 'Termbrio marketplace validation passed.'
