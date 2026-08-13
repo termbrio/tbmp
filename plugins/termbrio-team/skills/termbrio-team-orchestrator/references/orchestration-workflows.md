@@ -1,321 +1,308 @@
 # Team Orchestration Workflows
 
-Use only the installed `tb` CLI for team definition and lifecycle management. TermbrioTeam MCP is reserved for member-scoped TeamRelay messaging; do not search its catalog for orchestration tools or ask the model to read member credentials for management.
+Use the installed `tb` CLI for Team definition and lifecycle management. Use
+TermbrioTeam MCP only for member-scoped TeamRelay messaging.
 
-## First Team
-
-Prefer this path when the user describes several members and wants a team definition without an immediate start:
-
-~~~text
-tb --version --json
-tb team layouts --json
-tb team template codex --json
-# Author one current-schema FILE from the template and the user's supplied members.
-tb team validate FILE --resolve --json
-tb team import FILE --json
-tb team show TEAM --json
-~~~
-
-Before validation, require each member to make these choices explicit in the file:
-
-- one session binding: `session.id`, `session.ref`, or create/reuse-capable `session.name`;
-- one provider and `assistant.action`;
-- `conversation` for `resume`;
-- `create-once` for a new persistent conversation unless the user asked for ephemeral `create-always`;
-- a real working directory;
-- `permissions.mode: default` unless the user requested another profile;
-- only layout coordinates advertised by `tb team layouts --json`.
-
-If the team already exists, fetch its revision first and use `--replace --revision REVISION` only after intentionally reconciling the stored and file definitions. A successful import completes a definition-only request. Do not run `init` or `start` unless the user separately requested lifecycle mutation.
-
-## Atomic Definition
-
-~~~text
-tb team layouts --json
-tb team create optimate --json
-# Set REVISION from the create response, then replace it after every successful edit.
-tb team edit optimate set workspace --name optimate --cwd /work/optimate --revision REVISION --json
-tb team edit optimate set layout --strategy auto --surfaces 2 --revision REVISION --json
-tb team edit optimate add agent CODER --role coder --display-name "Coder" --revision REVISION --json
-tb team edit optimate set agent CODER session --name CODER --cwd /work/optimate --revision REVISION --json
-tb team edit optimate set agent CODER assistant --provider codex --action create-once --model MODEL --conversation CODER --revision REVISION --json
-tb team edit optimate set agent CODER bootstrap --version 1 --scope once --wait-for input-ready --revision REVISION --json
-tb team edit optimate set agent CODER bootstrap --submit "Inspect the repository and wait." --revision REVISION --json
-tb team edit optimate set agent CODER layout --surface main --area left --revision REVISION --json
-tb team show optimate --json
-tb team preflight optimate --json
-~~~
-
-Use the installed help for exact flags. Select an explicit renderer, surface, display, or area only when `team layouts --json` advertises the matching capability. After the first write, retain the returned revision and pass it through `--revision` on every later edit; on conflict, fetch `team show --json`, merge intentionally, and retry with the fresh revision.
-
-## File Definition
-
-~~~text
-tb team template codex --json
-tb team export optimate --output optimate.team.yaml --json
-# Edit the portable file.
-tb team validate optimate.team.yaml --resolve --json
-# Replace REVISION with the integer returned by team show/export.
-tb team import optimate.team.yaml --replace --revision REVISION --json
-tb team show optimate --json
-~~~
-
-Export/import files never contain credentials and never start a session.
-
-## Legacy File Migration
-
-Read the current schema version from `tb team schema --json`, then perform a pure file conversion before import:
-
-~~~text
-tb team migrate legacy.team.yaml --to-version 5 --output migrated.team.yaml --resolve-sessions --json
-tb team validate migrated.team.yaml --resolve --json
-~~~
-
-Migration never imports, initializes, or starts the team. Review every warning, especially unresolved or ambiguous session references, before importing the output. Never reuse the input path as the output path.
-
-## Remote Placement and Relay Federation
-
-Use this workflow when a canonical team definition remains on one Owner Server while one or more member sessions run on another Runtime Server, or when independent teams on paired Servers must exchange TeamRelay messages.
-
-### Discover Stable Identities and Authority
-
-Run on every participating Server before writing anything:
+## Discover the canonical contract
 
 ~~~text
 tb --version --json
-tb -h federation
-tb federation status --json
+tb team --help
+tb team schema --json
+tb team layouts --json
 ~~~
 
-Require Termbrio 0.5.8 or newer and preserve these distinct values:
+Require Termbrio 0.5.9 or newer and root `version: 6`. The root integer is
+only the file-schema contract. There is one Team domain and one `tb team` /
+`/teams` API; do not seek a versioned endpoint, store, service, or DTO.
 
-- local `serverId` from the Server identity;
-- outbound peer alias and remote peer `serverId`;
-- inbound trusted-client `grantId` for the remote caller;
-- canonical team `teamId` and `ownerServerId`;
-- each placed member's stable `memberId`;
-- federation GrantId and revision.
+The schema is authoritative for files. If `team template` or human help emits
+fields rejected by `team schema`, report the installed product mismatch and
+author from the schema instead. Do not run migration commands, convert an old
+root version, or preserve an unsupported Team shape.
 
-A peer alias is a transport selector; it is not a ServerId. A trusted-client GrantId authorizes an inbound remote caller; it is not the outbound peer's stored GrantId. Never substitute host names, display names, or member names for stable authorization identities.
+## Author a Team file
 
-Pairing is directional. For every Server that sends requests, require an outbound peer to the receiver with the needed capability. On the receiver, require the matching non-revoked trusted client and a scoped federation grant. Use `relay-federation` for remote messages and `team-member-runtime` for delegated lifecycle. Configure the reverse direction separately when both Servers initiate traffic.
-
-### Author Schema-v5 Placement
-
-Let the Owner Server assign stable ids when creating a new team, then fetch `tb team show TEAM --json` and preserve them. A placed stored definition has this shape:
+Prefer one reviewed file for several related changes:
 
 ~~~yaml
-version: 5
-teamId: 019f0000-0000-7000-8000-000000000001
+version: 6
 team: optimate
-ownerServerId: 019f0000-0000-7000-8000-000000000002
+defaultView: day-shift
+
+workspaces:
+  optimate:
+    cwd: E:\GitHub\btyon\optimate
+    environment: {}
+  optimate@ek-pc:
+    peer: ek-pc
+    cwd: E:\GitHub\btyon\optimate
+    environment: {}
+
 agents:
-  - memberId: 019f0000-0000-7000-8000-000000000003
-    name: CODER
+  - name: LEAD
+    workspace: optimate
+    role: Local owner
+    session:
+      name: LEAD
+      startup: []
+    assistant:
+      provider: codex
+      action: resume
+      conversation: LEAD
+      arguments: []
+      permissions:
+        mode: default
+
+  - name: WORKER
+    workspace: optimate@ek-pc
+    role: Owner-controlled worker hosted by EK-PC
     runtime:
-      serverId: 019f0000-0000-7000-8000-000000000004
+      server: ek-pc
       lifecycleAuthority: team-owner
     session:
-      name: CODER
+      name: WORKER
+      startup: []
+    assistant:
+      provider: codex
+      action: create-once
+      conversation: OPTIMATE_WORKER
+      arguments: []
+      permissions:
+        mode: default
+    bootstrap:
+      version: 1
+      scope: per-conversation
+      steps:
+        - waitFor: input-ready
+        - submit: Read the team instructions and report ready.
+
+linkedAgents:
+  - id: reviewer
+    agent: quality/REVIEWER@ek-pc
+
+views:
+  - name: day-shift
+    layouts:
+      - id: coordination
+        pattern: main-right-stack
+        launcher: windows-terminal
+        surface: 1
+        display: 1
+        panels:
+          - target: member:LEAD
+            slot: main
+          - target: member:WORKER
+            slot: right-top
+          - target: link:reviewer
+            slot: right-bottom
 ~~~
 
-Use `team-owner` when the canonical Owner Server must ensure, initialize, inspect status, or stop the remote runtime. Use `runtime-owner` only when those lifecycle decisions remain on the Runtime Server; owner-side lifecycle commands must not be expected to control that member.
+Preserve these boundaries:
 
-For one atomic placement edit on the Owner Server:
+- `agents` are owned lifecycle members. A remote owned member uses the remote
+  workspace path, `runtime.server: PAIR`, and
+  `runtime.lifecycleAuthority: team-owner`.
+- `linkedAgents` are persistent canonical references to externally owned
+  members. A link has no local workspace, session, assistant, or lifecycle.
+- `views` select presentation only. A panel target is `member:NAME` or
+  `link:ID`; a layout never creates membership or limits Team size.
+- `pattern` and `slot` use the enums returned by `team schema`. `launcher` uses
+  an available renderer returned by `team layouts`.
+- Pair aliases and remote-machine paths are authoring values. TeamId, MemberId,
+  OwnerServerId, credentials, endpoints, and grant IDs remain Server-owned and
+  never enter the portable file.
+
+Validate and import without starting anything:
 
 ~~~text
-tb team edit TEAM set agent MEMBER runtime --server-id RUNTIME_SERVER_ID --lifecycle-authority team-owner --revision TEAM_REVISION --json
-tb team show TEAM --json
+tb team validate optimate.team.yaml --json
+tb team import optimate.team.yaml --json
+tb team show optimate --json
+tb team view list optimate --json
+tb team start optimate --view day-shift --dry-run --json
 ~~~
 
-Use `--clear` to remove the placement block and return the member to ordinary local placement semantics. Do not combine `--clear` with placement values.
+For replacement, fetch the current revision and use both `--replace` and
+`--revision REVISION`. Reconcile a `409` intentionally; never overwrite a
+newer Team definition blindly.
 
-### Grant Runtime Delegation
+## Edit a stored Team
 
-On the Runtime Server, reference the inbound trusted-client PairingGrantId belonging to the Owner Server and scope the grant to the exact stable TeamId and MemberId:
+Use `tb team edit TEAM ... --revision REVISION --json` for one small change.
+Use export/edit/validate/import when changing workspaces, several members,
+links, or views together:
 
 ~~~text
-tb federation runtime-grant create --pairing-grant-id OWNER_TRUSTED_CLIENT_GRANT --team-id TEAM_ID --member-id MEMBER_ID --operation ensure --operation initialize --operation status --operation stop --json
+tb team export optimate --output optimate.team.yaml --json
+# Edit the portable file.
+tb team validate optimate.team.yaml --json
+tb team import optimate.team.yaml --replace --revision REVISION --json
+tb team show optimate --json
+tb team start optimate --view day-shift --dry-run --json
 ~~~
 
-Grant only the operations required by the requested lifecycle authority. Preserve the generated federation GrantId. To change scope, use `runtime-grant update GRANT_ID ... --revision REVISION`; never revoke and recreate merely to bypass an optimistic-concurrency conflict.
+`create`, `edit`, `import`, and Server Web builder save are definition-only.
+They never initialize a provider or open a terminal view.
 
-After saving placement and grant state, run the requested owner-side preflight/init/start. Verify:
+## Pair and place a remote owned member
+
+Discover and verify the existing authority before changing it:
 
 ~~~text
-tb team status TEAM --json
+tb pair list
+tb pair show ek-pc
+tb pair test ek-pc
 tb federation status --json
 ~~~
 
-Require the placement to report the intended Owner ServerId, Runtime ServerId, lifecycle authority, reachability, and claim/runtime-instance state. An unreachable Runtime Server is not a reason to move ownership silently or create a local fallback session.
+Pairing is directional. A sender needs an outbound peer; the receiving Server
+needs the corresponding trusted-client authority. Treat aliases, ServerIds,
+trusted-client grant IDs, federation grant IDs, and capabilities as distinct.
 
-### Grant and Route Remote TeamRelay
+Do not create or broaden grants merely because a Team file names a remote
+workspace. A reviewed full-access pair may already supply the development
+authority. If installed status reports that a scoped relay/runtime grant is
+required, obtain explicit user authority, use the exact trusted-client grant
+and stable Server-owned TeamId/MemberId returned by the Server, then verify the
+fresh federation status. Never guess IDs or add them to YAML.
 
-For messages sent from Server A to Server B, create the relay grant on B using B's inbound trusted-client PairingGrantId for A:
+The Runtime Server brokers process creation. The Owner Server retains Team
+lifecycle, provider readiness, TeamRelay policy, and the direct SessionHost
+control/attach relationship. An offline Runtime Server remains an unreachable
+per-member outcome; never create a local fallback member.
 
-~~~text
-tb federation relay-grant create --pairing-grant-id A_TRUSTED_CLIENT_GRANT_ON_B --source-team TEAM_A --target-team TEAM_B --direction inbound --json
-~~~
+## Link an external member
 
-Use `*` only after the user explicitly authorizes every team in that source or target scope. Preserve the generated GrantId and use revision-guarded update for later scope changes.
-
-Address the remote recipient through A's outbound alias for B:
-
-~~~text
-tb team dispatch TEAM_A --from SENDER --to TEAM_B/MEMBER@PAIR_B --body "Review the change." --json
-~~~
-
-`TEAM_B/MEMBER@PAIR_B` is a routed address, not a linked-member database record and not a transfer of team ownership. Configure the reverse outbound peer and a separate receiving grant on A when B must initiate replies.
-
-Verify both ordinary message delivery and federation transport state:
-
-~~~text
-tb team-relay delivery-status MESSAGE_ID --json
-tb federation outbox list --json
-tb federation status --json
-~~~
-
-A committed MessageId proves local acceptance. It does not prove that the remote Server accepted the envelope or that terminal notification delivery completed. Preserve MessageId and caller-owned ClientOperationId when retrying the identical ambiguous operation; do not create a duplicate logical message.
-
-## Conversation Actions and Bootstrap Scope
-
-Use one explicit assistant action:
+Add a canonical `linkedAgents` entry only when the user wants that external
+member to be part of this Team's discoverable collaboration/view contract:
 
 ~~~yaml
-# Existing conversation; fail without creating a fallback.
+linkedAgents:
+  - id: external-reviewer
+    agent: other-team/REVIEWER@ek-pc
+~~~
+
+Use `link:external-reviewer` in a view. The linking Team may resolve and attach
+that exact member only through current owner-authorized evidence. It never
+starts, resumes, initializes, or stops the external member.
+
+A direct TeamRelay recipient such as `other-team/REVIEWER@ek-pc` is merely a
+routed address; sending to it does not create a persistent link. `*` targets
+the sender's primary Team set and never recursively expands linked teams.
+
+## Choose conversation provisioning
+
+~~~yaml
+# Existing provider conversation; missing is an error.
 assistant:
   provider: codex
   action: resume
-  conversation: CODER
+  conversation: LEAD
 
-# New persistent conversation; later starts resume it.
+# Create once, persist the provider conversation ID, then resume it.
 assistant:
   provider: codex
   action: create-once
-  conversation: CODER
+  conversation: WORKER
 
-# Fresh reviewer conversation after every stop/start.
+# Create a fresh provider conversation after every stopped-to-running start.
 assistant:
   provider: codex
   action: create-always
   conversation: REVIEWER
-bootstrap:
-  version: 1
-  scope: per-conversation
-  steps:
-    - submit: "Read AGENTS.md and review the current changes."
 ~~~
 
-`create-once` provisioning is recorded after provider initialization and before bootstrap. If bootstrap later fails, retry the existing conversation; never change the action to force another create. Use `scope: once` for member-lifetime setup and `per-start` only for an intentionally repeated prompt in the same resumed conversation.
+`create-once` resumes only when the Server has a real provider conversation
+ID. A logical member/conversation name is not a provider resume locator. Use
+`tb team reset-assistant TEAM --member MEMBER --json` only with explicit
+recreate intent and only while the member terminal is stopped.
 
-## Hidden Initialization
+Bootstrap scope is independent: use `once` for member-lifetime setup,
+`per-conversation` for each newly created provider conversation, and
+`per-start` only for deliberately repeated work.
 
-Foreground:
+## Start, show, hide, and stop
+
+Run a zero-side-effect file validation and inspect the stored definition
+before lifecycle mutation. Then choose one visible-start mode:
+
+~~~text
+# A sole view is implicit; otherwise defaultView is used.
+tb team start optimate --json
+
+# Select one named view explicitly.
+tb team start optimate --view day-shift --json
+
+# Start owned lifecycle without a local presentation view.
+tb team start optimate --no-view --json
+~~~
+
+Start reconciles every owned member independently, then compiles the selected
+view from stable Team/member/link identity. One offline or failed member must
+not block healthy members or valid panels. A panel may appear before it has a
+current attachable SessionId and wait for the ordinary attach route; the panel
+must not create a second lifecycle operation.
+
+Repeated start is idempotent: reuse existing launcher instances, fill missing
+panels, and retry failed members without duplicating the entire view.
+
+~~~text
+tb team show optimate --view day-shift --json
+tb team hide optimate --view day-shift --json
+tb team stop optimate --json
+~~~
+
+`show --view` materializes an existing-session view. `hide` closes matching
+local views and leaves sessions alive. `stop` closes every local view owned by
+the canonical Team and independently requests stop for owned members only. An
+unreachable remote member becomes pending; it must not turn the whole command
+into HTTP 500 or protect healthy local views from closure.
+
+## Hidden initialization and recovery
+
+Use hidden prewarm only when requested:
 
 ~~~text
 tb team init optimate --wait --json
 tb team status optimate --json
 ~~~
 
-If the result is `attention-required`, show the sanitized question and advertised choices to the user, then relay exactly one explicit answer:
+If initialization returns `attention-required`, present the sanitized choices
+and submit exactly the user's decision:
 
 ~~~text
 tb team init-respond optimate OPERATION_ID --choice CHOICE --wait --json
 ~~~
 
-Detached:
+For one managed member, resolve its canonical session reference and prefer:
 
 ~~~text
-tb team init optimate --json
-tb team init-status optimate OPERATION_ID --json
-tb team init-cancel optimate OPERATION_ID --json
+tb session resume CANONICAL_REF --no-attach --no-replay
 ~~~
 
-Do not loop on `init-status`. Prefer `--wait` when the orchestrator must block, otherwise retain the id and resume on an external event or user request.
+A live member is kept; a stopped or missing named member is restored from the
+canonical Team definition. Never reconstruct provider commands from provider
+files or terminal text.
 
-## Provider Permission Profiles
+Use `--retry-failed` for failed initialization members. Preview cleanup before
+`--apply`; reused sessions never belong to an older failed operation. Treat an
+ambiguous submit as potentially delivered and do not replay non-idempotent
+input without explicit approval.
 
-Keep `default` for ordinary orchestration so the provider's interactive configuration remains authoritative. Pin a portable conservative profile only when requested:
+## Messaging boundary
 
-~~~yaml
-assistant:
-  provider: codex
-  permissions:
-    mode: prompt
-~~~
+Use `tb team submit` for trusted terminal/provider input. Use `tb team
+dispatch` or the member MCP skill for untrusted TeamRelay messages. Omit the
+delivery policy for ordinary `submit-when-human-idle`; request
+`interrupt-and-submit` only after explicit user approval. Never emulate a
+semantic policy with raw Enter, Tab, or Escape input.
 
-The supported typed profiles are `prompt`, `edit-accepting`, `read-only`, and `full-access`. Semantic preflight reports the normalized mode and every injected provider argument. Claude `read-only` maps to its restrictive planning mode.
+## Completion checklist
 
-Use `full-access` only when the user explicitly requests bypass for named members and the runtime has an appropriate external sandbox:
-
-~~~yaml
-# Codex: externally sandboxed unrestricted member
-assistant:
-  provider: codex
-  permissions:
-    mode: full-access
-
-# Claude: externally sandboxed unrestricted member
-assistant:
-  provider: claude
-  permissions:
-    mode: full-access
-~~~
-
-Never add either flag merely because the user asked to initialize, start, automate, or run a team unattended. Scope the choice to the named member(s), state that provider safeguards are bypassed, and retain the default `attention-required` flow for every other member.
-
-For a small revision to a stored definition, use the typed atomic edit only after that explicit opt-in. Replace `REVISION` with the current revision:
-
-~~~text
-tb team edit optimate set agent CODER assistant --permission-mode full-access --revision REVISION --json
-tb team preflight optimate --json
-~~~
-
-Before initialization, require one of these session intents per member:
-
-~~~yaml
-# Reuse exact existing session
-session:
-  id: 019f0000-0000-7000-8000-000000000000
-
-# Resolve an existing canonical reference; missing is an error
-session:
-  ref: workspace/session@pair
-
-# Explicitly permit create-or-reuse by name
-session:
-  name: session
-~~~
-
-## Visibility
-
-~~~text
-tb team start optimate --json
-tb team hide optimate --json
-tb team stop optimate --json
-~~~
-
-`start` is also the immediate-visibility lifecycle entry point. It materializes correctly configured member sessions, renders the server's neutral layout on the current CLI platform, and returns the queued background initialization operation for unfinished provider/bootstrap readiness. Use explicit `init --wait` only when hidden prewarm is intended. `hide` affects local views only. `stop` stops server sessions while preserving the definition and resume metadata.
-
-## Input and Messaging
-
-~~~text
-tb team submit optimate CODER "Run the focused tests." --json
-tb team dispatch optimate --from ORCHESTRATOR --to CODER --body "Review the failing test." --json
-~~~
-
-Use `submit` for trusted terminal/provider input. Use `dispatch` for untrusted TeamRelay messages. Never place a member identity value on either command line.
-
-Use `team status` and hook events for readiness. The TeamRelay `team_read_screen` operation is an explicit, bounded, same-host observation tool for the member-messaging role; it is not a lifecycle probe and must not be polled by an orchestrator.
-
-## Recovery
-
-- Revision conflict: fetch `team show` again, merge intentionally, and retry with the fresh revision.
-- One managed member: prefer its canonical session reference and run `tb session resume CANONICAL_REF --no-attach --no-replay`. Use `id:<guid>[@pair]` only when discovery confirms that it resolves to this named session; a bare GUID remains a lexical name. A live and ready member is kept without readiness work. A live but not-ready member is kept without relaunch and queues readiness work. A stopped or missing named member is materialized/restored from the team definition and queues provider create/resume readiness. Do not substitute an id-only session or a hand-built `codex resume` / `claude --resume` command.
-- Failed operation: inspect `team status` and the operation error, then use `--retry-failed`.
-- Failed operation cleanup: preview with `tb team init-cleanup TEAM OPERATION_ID --json`; after reviewing candidates, apply with `tb team init-cleanup TEAM OPERATION_ID --apply --json`. The server removes only resources owned by that operation and preserves reused sessions.
-- Ambiguous bootstrap input: inspect terminal state; use `--reinitialize-bootstrap` only with explicit replay intent.
-- Server restart: query the same operation id; queued/running jobs are recovered by the server.
-- Visible layout lost: run `team start` again; do not restart a live SessionId solely to rebuild a view.
-- When `team start` returns an initialization operation because readiness work remains, retain its id for later status or attention handling; do not wait before presenting the opened layout. The operation is null when every member is already ready.
-- Slow visible layout: retry with `tb team start TEAM --timing --json` and report the resolved renderer plus server, renderer, and total timings.
+- exact Team name, revision, selected/default view, and visible-start command;
+- each owned member's local/paired runtime selector and lifecycle outcome;
+- each linked canonical address and current capability/reachability state;
+- operation id and per-member readiness/attention state when applicable;
+- no identity PIN, bearer token, invitation, secret environment value, or
+  prompt body in the handoff.

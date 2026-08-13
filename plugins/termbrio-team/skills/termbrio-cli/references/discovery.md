@@ -90,7 +90,12 @@ Keep the returned objects distinct:
 - a runtime federation grant scopes which stable TeamId/MemberId operations an Owner Server may perform on this Runtime Server;
 - an outbox entry records one remote Relay delivery attempt and its retry state.
 
-`team/member@pair` and `member@pair` are routed addresses. They do not create a persistent linked-member entity. The pair alias selects the remote Server transport; team/member names address the recipient on that Server. Use the full team-qualified form when the recipient team is not otherwise unambiguous.
+`team/member@pair` and `member@pair` are routed addresses. Sending to one does
+not create a persistent link. A schema-6 Team may separately persist an exact
+external address under `linkedAgents` with a local link id; that link is an
+externally owned collaboration/view target and never a local lifecycle member.
+The pair alias selects the remote Server transport. Use the full team-qualified
+form when the recipient team is not otherwise unambiguous.
 
 For a message sent from Server A to Server B, require all of the following:
 
@@ -116,7 +121,28 @@ tb federation outbox list --json
 
 Create generates a stable federation GrantId. Preserve it from the response. Update requires the current revision; after `409`, fetch status/list again and reconcile intentionally. Never guess a pairing GrantId from a peer alias—read the trusted-client list in federation status on the receiving Server.
 
-Schema-v5 placement stores `runtime.serverId` and `runtime.lifecycleAuthority` on the canonical member definition. Use `tb team status TEAM --json` to read placement reachability and claim state. `team-owner` permits the Owner Server's lifecycle workflow to ensure/status/stop the remote member. `runtime-owner` leaves lifecycle control at the Runtime Server; do not expect owner-side init/start/stop to control that member.
+Schema-6 placement stores `runtime.server` as a paired Server alias and
+`runtime.lifecycleAuthority: team-owner` on an owned member. Its workspace key
+selects a `workspaces` entry whose optional `peer` and `cwd` describe the path
+as seen on that remote machine. Stable TeamId, MemberId, OwnerServerId,
+runtime ServerId, endpoints, grants, and credentials remain Server-owned and
+do not enter the portable YAML. Use `tb team status TEAM --json` to read exact
+placement reachability and current runtime/session evidence.
+
+## Team files, views, and links
+
+Run `tb team schema --json` before authoring. Root `version` must be exactly
+`6`; other versions are unsupported and are not migrated. The schema's
+`workspaces`, `agents`, `linkedAgents`, and `views.layouts` fields are the file
+contract. A stale `team template` or help example does not override the schema.
+
+A sole named view is implicit for `tb team start TEAM`; multiple views require
+`defaultView` or `--view NAME`, and `--no-view` is explicit headless lifecycle.
+Start reconciles owned members independently, then materializes the selected
+view. `show --view` is an existing-session presentation action, `hide` closes
+matching local views without stopping sessions, and `stop` closes every local
+view owned by the canonical Team while independently stopping owned members.
+Linked members are never start/stop targets.
 
 ## Session Resume
 

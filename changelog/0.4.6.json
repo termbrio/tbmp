@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "component": "plugins",
+  "version": "0.4.6",
+  "channel": "preview",
+  "status": "draft",
+  "summary": "Teaches agents the canonical schema-6 Team, named-view, and linked-member contracts.",
+  "changes": [
+    {
+      "type": "changed",
+      "area": "team-orchestration",
+      "providers": ["codex", "claude"],
+      "text": "Author only schema-6 Team files with workspaces, owned agents, persistent linked agents, and named presentation views."
+    },
+    {
+      "type": "changed",
+      "area": "team-lifecycle",
+      "providers": ["codex", "claude"],
+      "text": "Keep owned-member lifecycle independent from view placement and isolate unavailable remote members as per-member outcomes."
+    },
+    {
+      "type": "changed",
+      "area": "remote-runtime",
+      "providers": ["codex", "claude"],
+      "text": "Use paired workspace and runtime aliases in portable files while retaining stable ownership and authority inside Termbrio Server."
+    },
+    {
+      "type": "changed",
+      "area": "team-relay",
+      "providers": ["codex", "claude"],
+      "text": "Discover authorized linked-into teams through one-hop team_info without recursively expanding federation."
+    }
+  ]
+}

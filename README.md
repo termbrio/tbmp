@@ -74,9 +74,9 @@ tb --version --json
 tb server status
 ```
 
-The current plugin requires Termbrio 0.5.6 or newer for schema-v4 conversation
-actions, managed provider resume, stable conversation identity, notification
-templates, exact-message reply acknowledgement, and bounded team screen reads.
+The current plugin requires Termbrio 0.5.9 or newer for the sole schema-6 Team
+definition, named views, persistent linked agents, owner-controlled remote
+placement, one-hop linked discovery, and lifecycle/view separation.
 Plugin and product versions advance independently; each plugin release records
 its minimum compatible product version.
 

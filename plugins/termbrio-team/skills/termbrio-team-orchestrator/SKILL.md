@@ -9,17 +9,17 @@ Manage canonical team definitions and lifecycle through non-interactive `tb` CLI
 
 ## Establish the Contract
 
-1. Run `tb --version --json`, then `tb team --help`. Require Termbrio 0.5.6 or newer for schema-v4 conversation actions, scoped bootstrap, visible-before-ready start, managed provider-resume, and stable conversation-ID workflow. Require Termbrio 0.5.8 or newer for schema-v5 TeamId/MemberId/OwnerServerId, remote runtime placement, federated TeamRelay routing, and the `tb federation` operator surface. Treat installed-help and capability discovery as a separate guard; the stable `name=tb` field does not relax the version floor. Inspect the installed `schema`, `describe`, and `template` commands before authoring unfamiliar fields.
-2. Run `tb team layouts --json` before choosing an explicit layout strategy; use only capability fields reported by the current platform.
+1. Run `tb --version --json`, then `tb team --help` and `tb team schema --json`. Require Termbrio 0.5.9 or newer for the sole schema-6 Team definition, named views, persistent linked agents, owner-controlled remote placement, one-hop linked visibility, and lifecycle/view separation. Reject every root Team version other than `6`; do not migrate or author compatibility files.
+2. Run `tb team layouts --json` before choosing a launcher. Read the schema's pattern and slot enums for authoring; renderer discovery reports launcher availability, not the Team layout catalog.
 3. Use `--json` for automation-facing discovery, mutation, and status operations. Read the stable envelope code and process exit code; do not parse human tables or prose errors.
-4. Treat installed CLI help and server-provided schema output as the current contract.
+4. Treat the server-provided schema as the canonical file contract. A template or help surface that emits fields rejected by that schema is a product mismatch: report it and stop instead of copying stale fields.
 
 Never inspect Termbrio databases or source code to reconstruct a team or identity. Never request, read, print, or copy a member's `AGENT_IDENTITY` or `AGENT_PIN` for management.
 
 ## Use the First-Team Fast Path
 
 - If the user already supplied member names, working directories, conversation intent, and layout placement, preserve those decisions. Do not rediscover them from databases, source code, provider history, or unrelated team files.
-- For a multi-member team, prefer one portable current-schema file over a long sequence of atomic edits. Start from `tb team template PROVIDER --json`, preserve or obtain schema-v5 stable identities from the Server, fill every blank `assistant.action`, then run `tb team validate FILE --resolve --json`.
+- For a multi-member team, prefer one portable schema-6 file over a long sequence of atomic edits. Author only `version`, `team`, optional `defaultView`, `workspaces`, `agents`, `linkedAgents`, and `views` as advertised by `tb team schema --json`, then run `tb team validate FILE --json`. Import does not start anything; after import use `tb team start TEAM --view VIEW --dry-run --json` for a revision-bound resolved plan.
 - Map an explicitly existing conversation to `resume` and an explicitly new persistent member to `create-once`. Ask only when that material intent is genuinely unknown; do not silently turn a missing resume target into a new conversation.
 - Import the validated definition and verify it with `tb team show TEAM --json`. If the user asked only to define, update, or import the team, stop there. Never infer permission to run `init` or `start`.
 - Ask for user input only for a decision that changes the result materially, such as resume versus create, destructive replacement after a revision conflict, or hidden initialization versus visible start.
@@ -31,6 +31,7 @@ Read the First Team section in [references/orchestration-workflows.md](reference
 - Use atomic `tb team edit TEAM ...` commands for a small change, or export/edit/validate/import for several related fields.
 - Treat `create`, `edit`, `import`, and editor save as definition-only operations. They never initialize or start sessions.
 - Do not use or recreate `team apply`.
+- Do not invoke or emulate Team-file migration. Older root versions are unsupported input; create a reviewed schema-6 file and import it explicitly.
 
 Read [references/orchestration-workflows.md](references/orchestration-workflows.md) for concrete CLI sequences and recovery choices.
 
@@ -38,12 +39,12 @@ Read [references/orchestration-workflows.md](references/orchestration-workflows.
 
 - Keep one canonical team definition on its Owner Server. A member may run locally or on a paired Runtime Server; do not copy the canonical definition into an independent second team merely to place one runtime remotely.
 - Treat the paired Runtime Server as the physical terminal and SessionHost host only. The Owner Server remains the lifecycle, readiness, TeamRelay, and delivery-policy authority for an owner-controlled placed member.
-- Begin with `tb federation status --json` on every participating Server. Record each stable ServerId, outbound peer alias, inbound trusted-client PairingGrantId, peer capabilities, and current grants. Never infer these identities from host names or aliases.
-- Require `relay-federation` for remote TeamRelay transport and `team-member-runtime` for delegated member lifecycle. Pairing is directional: every sending Server needs an outbound peer route, and every receiving/runtime Server needs the matching trusted-client grant plus a scoped federation grant.
-- Configure a relay grant on the receiving Server for each allowed source-team to target-team path. Address a remote recipient as `[team/]member@pair`; treat this as routing syntax, not a durable linked-member record.
-- Configure a runtime grant on the Runtime Server. Scope it to the Owner Server's stable TeamId, the placed stable MemberId, and only the required `ensure`, `initialize`, `status`, and `stop` operations.
-- Set the canonical member's `runtime.serverId` to the Runtime Server's stable UUID. Set `runtime.lifecycleAuthority` to `team-owner` only when the Owner Server must run remote init/start/status/stop. Use `runtime-owner` when lifecycle control must remain at the Runtime Server, and do not claim owner-side lifecycle commands will control that member.
-- Preserve TeamId, MemberId, OwnerServerId, and runtime ServerId across edits and import/export. Names remain human-facing addresses; stable UUIDs define ownership, placement, grants, and claims.
+- Begin with `tb pair list`, `tb pair show PAIR`, `tb pair test PAIR`, and `tb federation status --json` on participating Servers. Pair aliases are authoring selectors; ServerIds, trusted-client grants, and tokens remain Server-owned authority and never enter Team YAML.
+- Define remote paths once under `workspaces`: set `peer: PAIR` and use the path as seen on that remote machine. On the owned member set `workspace: WORKSPACE_KEY`, `runtime.server: PAIR`, and `runtime.lifecycleAuthority: team-owner`. The current schema supports no other lifecycle authority.
+- Treat `linkedAgents` as persistent canonical Team references. Each entry has a local `id` and an exact external `agent: team/member@pair`; it may be placed in views as `link:ID` but never receives create, initialize, resume, stop, workspace, or assistant policy from the linking Team.
+- A direct `[team/]member@pair` message remains routed addressing and does not by itself create a link. Do not confuse that fact with an explicitly authored `linkedAgents` entry.
+- Use the authority already established by the reviewed pairing. Create or widen federation grants only when installed status/help explicitly requires it and the user authorized that mutation; never duplicate a working full-access development pair or guess a GrantId.
+- Preserve Team/member/owner/runtime UUIDs returned by Server responses when diagnosing or granting authority, but do not add them to schema-6 authoring files.
 - After mutation, verify `tb team show TEAM --json`, `tb team status TEAM --json`, and `tb federation status --json` on the relevant Servers. Check placement reachability/claim state and `tb federation outbox list --json`; a committed local message does not prove remote acceptance.
 
 Read the Remote Placement and Relay Federation section in [references/orchestration-workflows.md](references/orchestration-workflows.md) before performing a multi-Server mutation.
@@ -53,20 +54,20 @@ Read the Remote Placement and Relay Federation section in [references/orchestrat
 - Use `assistant.action: resume` for a named existing conversation. Require `conversation`; a missing provider conversation must fail without creating or renaming a fallback.
 - Use `create-once` for a new persistent member. The first successful provider initialization creates and renames the conversation; the Server records that provisioning before bootstrap, and later starts resume it.
 - Use `create-always` only when the user explicitly wants a fresh conversation after every stop/start, such as an ephemeral reviewer.
-- Never emit legacy `assistant.lifecycle` in a new definition. Older `auto` and `create` values migrate to `create-once`; `resume-only` migrates to `resume`.
+- Emit only `assistant.action: resume`, `create-once`, or `create-always`; never emit obsolete lifecycle spellings.
 - Preflight must report the expected operational assistant action (`create` or `resume`) before initialization.
 
 ## Run the Lifecycle
 
-1. Run zero-side-effect semantic preflight with `tb team validate FILE --resolve --json`. Require every member to use exactly one binding: `session.id` or `session.ref` must resolve an existing session, while `session.name` explicitly permits create/reuse. Never place a UUID in `session.ref`. For a remote member, also require stable owner/team/member/runtime identities and a compatible lifecycle authority.
+1. Run zero-side-effect file validation with `tb team validate FILE --json`. After import, run `tb team start TEAM [--view VIEW] --dry-run --json` for semantic resolution against the stored revision. Require every member to use exactly one binding: `session.id` or `session.ref` must resolve an existing session, while `session.name` explicitly permits create/reuse. Never place a UUID in `session.ref`.
 2. Save/import it with revision protection.
 3. For a stored definition, run `tb team preflight TEAM --json` immediately before initialization and review workspace/session/assistant/bootstrap/layout actions.
 4. Choose the lifecycle entry point from the user's visibility intent:
    - For hidden prewarm, run `tb team init TEAM --wait --json`. If detaching, retain the returned operation id.
-   - For immediate visibility, run `tb team start TEAM --json` on the layout client. Start materializes member sessions, opens views, and, when readiness work remains, returns the queued background initialization operation without waiting for readiness.
+   - For immediate visibility, run `tb team start TEAM [--view VIEW] --json` on the layout client. A sole view is implicit; several views require `defaultView` or `--view`; `--no-view` is explicit headless lifecycle. Start reconciles every owned member independently, then materializes the selected view without letting one offline member block healthy members or panels.
    - If initialization returns `attention-required`, present the sanitized prompt and advertised choices to the user. Relay only their explicit choice with `tb team init-respond`; never guess, reuse, or broaden an approval.
 5. Inspect `tb team status TEAM --json` and the initialization result. For placed members, also inspect placement reachability, claim revision/runtime instance, and the Runtime Server's federation state. Do not infer readiness from quiet terminal output.
-6. Use `hide` to close local views while leaving sessions alive; use `stop` to stop server sessions.
+6. Use `hide` to close matching local views while leaving sessions alive. Use `stop` to close every local view owned by the canonical Team and independently request stop for every owned member; linked members are never lifecycle targets and an unreachable placed member is a per-member pending outcome, not a global failure.
 
 Do not busy-poll. Use lifecycle wait mode when foreground blocking is intended, or check initialization status after a user prompt or external event. Use the CLI cancellation operation only for explicit cancellation.
 
@@ -84,7 +85,7 @@ Do not busy-poll. Use lifecycle wait mode when foreground blocking is intended, 
 - Keep initial task submission as terminal input. TeamRelay dispatch is a separate communication operation.
 - For `tb team dispatch`, omit `--delivery` unless the orchestration task explicitly requires different timing; omission uses `submit-when-human-idle`. Use only installed semantic policies and never translate them into provider keys. Request `interrupt-and-submit` only after explicit user approval. Codex supports all four policies; Claude supports safe submit, active-turn submit, and Tab-backed after-turn queue. Inspect visible fallback and audit fields instead of assuming the requested policy executed.
 - Use `[team/]member@pair` only when the message must be routed through a named outbound peer. A remote address selects transport; it does not transfer team ownership or create a member definition.
-- Treat `*` as the canonical team's local member set. It does not include a linked external team; linked members remain explicit routed addresses and are not added to the local runtime definition.
+- Treat `*` as the caller's primary Team member set. It does not expand into linked teams; name an authorized linked recipient explicitly with its canonical address.
 - Use team status and provider-hook evidence for lifecycle/readiness. Never substitute `team_read_screen` for readiness checks or poll teammate screens; explicit on-demand screen inspection belongs to the TeamRelay member skill.
 
 ## Provider Permissions
@@ -97,4 +98,4 @@ Do not busy-poll. Use lifecycle wait mode when foreground blocking is intended, 
 
 ## Hand Off
 
-Return the team name, saved revision, Owner ServerId, each placed member's Runtime ServerId and lifecycle authority, initialization operation id/state, per-member reachability/readiness, and the exact visible-start command. Do not include prompt bodies, member identity values, access tokens, or secret environment values.
+Return the team name, saved revision, selected/default view, each owned member's local or paired runtime selector and lifecycle outcome, each linked canonical address and capability state, initialization operation id/state, per-member reachability/readiness, and the exact visible-start command. Include Server-owned UUIDs only when returned and operationally relevant. Do not include prompt bodies, member identity values, access tokens, or secret environment values.

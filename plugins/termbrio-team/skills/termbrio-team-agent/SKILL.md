@@ -7,7 +7,7 @@ description: Bootstrap and operate Termbrio TeamRelay agent messaging through th
 
 Use the TermbrioTeam MCP server for terminal-agent messaging backed by the TeamRelay API embedded in `Termbrio.Server`.
 
-The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools require Termbrio 0.5.1 or newer. Canonical federated sender addressing and source-Server reply routing require Termbrio 0.5.8 or newer. If a named MCP tool or address form is absent, report the installed Server mismatch instead of emulating it with terminal input or source inspection. Notification-template behavior is CLI/operator-owned through the `termbrio-cli` skill; it is not a TermbrioTeam MCP tool. The self-service `get_team_relay_notification_mode` and `set_team_relay_notification_mode` tools require the newer notification-mode contract; when absent, report the Server mismatch and do not emulate muting through inbox reads or terminal control.
+The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools require Termbrio 0.5.1 or newer. Canonical linked agents and one-hop linked-into `team_info` require Termbrio 0.5.9 or newer. If a named MCP tool or address form is absent, report the installed Server mismatch instead of emulating it with terminal input or source inspection. Notification-template behavior is CLI/operator-owned through the `termbrio-cli` skill; it is not a TermbrioTeam MCP tool. The self-service `get_team_relay_notification_mode` and `set_team_relay_notification_mode` tools require the newer notification-mode contract; when absent, report the Server mismatch and do not emulate muting through inbox reads or terminal control.
 
 ## Authorization Boundary
 
@@ -30,10 +30,10 @@ The exact-reply acknowledgement and on-demand `team_read_screen` MCP tools requi
 
 ## Messaging
 
-- Use `team_info` to list registered members in the current team.
+- Use `team_info` to list the authenticated member's primary Team plus authorized live one-hop teams/members discovered through explicit canonical links. The caller asks only its own Server; do not recursively query linked teams or treat an unavailable peer as loss of the primary roster.
 - Use `send_message` with `recipients` set to a discovered current-team member, a comma-separated list, or exact `*` for the current primary team only. `*` never expands linked or remote members.
 - Do not invent remote recipient forms. For a message received from another paired Server, preserve the canonical `From` address returned by `read_message` or `read_thread`; reply to that exact source with `inReplyToMessageId` so the Server routes the reply to its origin.
-- A discovered linked member may be addressed explicitly only inside the user's authorized TeamRelay task. A remote inbox/outbox acceptance is separate from terminal notification submission and reply receipt.
+- A discovered linked member may be addressed explicitly only inside the user's authorized TeamRelay task. Linked discovery grants no lifecycle or screen-read authority. Remote inbox/outbox acceptance is separate from terminal notification submission and reply receipt.
 - Generate one caller-owned `clientOperationId` GUID for each send/reply intent. Reuse it only when retrying the identical payload after an ambiguous response; never generate a new ID for that retry.
 - Use `reply` with an existing ThreadId. When replying to one handled delivery, also pass its MessageId as `inReplyToMessageId`; the Server creates the reply and marks only that delivery read atomically. Do not interchange ThreadId and MessageId.
 - If an exact reply fails, treat the source delivery as unread. Do not infer that a whole thread was marked read.
