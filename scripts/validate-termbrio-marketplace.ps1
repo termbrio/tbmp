@@ -209,6 +209,8 @@ foreach ($relativePath in $repositoryFiles) {
 
 [void](Get-TermbrioReadyChangelogEntry `
     -ChangelogRoot (Join-Path $resolvedRoot 'changelog') `
-    -ExpectedComponent 'plugins')
+    -ExpectedComponent 'plugins' `
+    -RepositoryRoot $resolvedRoot `
+    -IntegratedRevision 'HEAD')
 
 Write-Host 'Termbrio marketplace validation passed.'

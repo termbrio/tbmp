@@ -3,7 +3,7 @@
   "component": "plugins",
   "version": "0.4.6",
   "channel": "preview",
-  "status": "draft",
+  "status": "ready",
   "summary": "Teaches agents the canonical schema-6 Team, named-view, and linked-member contracts.",
   "changes": [
     {
