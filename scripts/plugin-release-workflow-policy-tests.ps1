@@ -8,6 +8,8 @@ Set-StrictMode -Version Latest
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $workflowPath = Join-Path $repoRoot '.github\workflows\release-projection.yml'
 $workflow = Get-Content -LiteralPath $workflowPath -Raw
+$validationWorkflowPath = Join-Path $repoRoot '.github\workflows\validate.yml'
+$validationWorkflow = Get-Content -LiteralPath $validationWorkflowPath -Raw
 
 function Assert-Contains {
     param(
@@ -50,6 +52,10 @@ Assert-Contains `
 Assert-Contains `
     -Pattern 'retention-days: 14' `
     -Message 'Plugin pre-publication evidence retention is too short.'
+
+if (-not $validationWorkflow.Contains('fetch-depth: 0')) {
+    throw 'Marketplace validation must fetch tags for historical ready-entry selection.'
+}
 
 $tagIndex = $workflow.IndexOf('- name: Create or verify plugin source tag')
 $releaseIndex = $workflow.IndexOf('- name: Publish or verify plugin release record')
