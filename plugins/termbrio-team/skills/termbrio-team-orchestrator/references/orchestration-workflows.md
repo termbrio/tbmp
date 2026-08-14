@@ -218,6 +218,14 @@ ID. A logical member/conversation name is not a provider resume locator. Use
 `tb team reset-assistant TEAM --member MEMBER --json` only with explicit
 recreate intent and only while the member terminal is stopped.
 
+A successful explicit Team stop abandons an incomplete `create-once`
+submission when no real provider conversation identity exists. The next start
+uses create again. This normal stopped-attempt recovery requires neither a
+database reset nor manual provider-command reconstruction. If the current
+product still reports `create-submitted` after a successful stop, keep the
+terminal available for inspection and report the exact member status instead
+of repeatedly starting or resetting it.
+
 Bootstrap scope is independent: use `once` for member-lifetime setup,
 `per-conversation` for each newly created provider conversation, and
 `per-start` only for deliberately repeated work.

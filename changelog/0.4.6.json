@@ -16,7 +16,7 @@
       "type": "changed",
       "area": "team-lifecycle",
       "providers": ["codex", "claude"],
-      "text": "Keep owned-member lifecycle independent from view placement and isolate unavailable remote members as per-member outcomes."
+      "text": "Keep owned-member lifecycle independent from view placement, isolate unavailable remote members per member, and recover explicitly stopped incomplete create-once attempts without database resets."
     },
     {
       "type": "changed",
