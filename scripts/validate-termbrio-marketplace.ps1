@@ -118,6 +118,7 @@ $requiredHookEvents = @(
     'Elicitation',
     'ElicitationResult',
     'Stop',
+    'StopFailure',
     'SessionEnd'
 )
 

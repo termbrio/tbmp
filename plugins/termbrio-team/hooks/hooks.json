@@ -122,6 +122,18 @@
         ]
       }
     ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tbhookemit auto StopFailure",
+            "commandWindows": "tbhookemit.exe auto StopFailure",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
     "SessionEnd": [
       {
         "hooks": [
