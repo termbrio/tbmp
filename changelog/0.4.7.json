@@ -1,0 +1,32 @@
+{
+    "schemaVersion":  1,
+    "component":  "plugins",
+    "version":  "0.4.7",
+    "channel":  "preview",
+    "status":  "ready",
+    "summary":  "Adds an experimental local Antigravity CLI projection and updates provider hook compatibility for Termbrio 0.5.10.",
+    "changes":  [
+                    {
+                        "type":  "added",
+                        "area":  "agy-integration",
+                        "text":  "Added a reproducible local Antigravity CLI plugin projection from the shared skills, HTTP MCP endpoint and bounded activity hooks. This is experimental local support, not an Antigravity marketplace publication."
+                    },
+                    {
+                        "type":  "fixed",
+                        "area":  "provider-hooks",
+                        "providers":  [
+                                          "claude"
+                                      ],
+                        "text":  "Registered and validated Claude StopFailure and PermissionDenied hook events."
+                    },
+                    {
+                        "type":  "changed",
+                        "area":  "compatibility",
+                        "providers":  [
+                                          "codex",
+                                          "claude"
+                                      ],
+                        "text":  "Requires Termbrio 0.5.10 or newer. Native setup, plugin hook trust and tool permissions remain explicit user decisions; experimental AGY live acceptance remains incomplete."
+                    }
+                ]
+}
