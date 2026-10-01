@@ -21,8 +21,8 @@ plugin payload. The package name remains `termbrio-team`.
 
 The generated hooks require a matching development `tbhookemit` build with AGY
 support on PATH. Released binaries that only recognize Codex/Claude are not
-sufficient. Product/plugin release versions have not been assigned for this
-integration. After the matching product is available, a local package can be
+sufficient. Termbrio 0.5.10 and TBMP 0.4.7 are the minimum versions assigned for this
+integration. After the matching preview product is installed, a local package can be
 installed explicitly with `agy plugin install <output-directory>`.
 
 The MCP endpoint comes from the shared `.mcp.json`; currently it is the local

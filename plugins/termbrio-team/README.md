@@ -20,7 +20,7 @@ There is no standalone MCP runtime, download cache, or stdio process.
 
 The MCP surface is reserved for member-scoped TeamRelay messaging. Team definition and lifecycle management use the installed CLI over the Server's REST contracts; no second management secret or second MCP connection is introduced.
 
-Plugin version 0.4.6 requires Termbrio 0.5.9 or newer for the sole schema-6 Team definition, named views, persistent linked agents, owner-controlled remote placement, one-hop linked discovery, and the current lifecycle/view contracts. Update the product before relying on those workflows after a plugin-only upgrade.
+Plugin version 0.4.7 requires Termbrio 0.5.10 or newer. The published 0.4.6 plugin requires Termbrio 0.5.9 or newer for the sole schema-6 Team definition, named views, persistent linked agents, owner-controlled remote placement, one-hop linked discovery, and the current lifecycle/view contracts. Update the product before relying on a newer plugin's workflows after a plugin-only upgrade.
 
 TeamRelay notifications remain reference-only by default; an operator may explicitly opt a global or team template into fixed-frame untrusted `{body}` presentation. Protected MCP tools also expose sender-authorized delivery status, ordered thread reads, exact-message reply acknowledgement, and policy-controlled on-demand `team_read_screen`. A committed MessageId means durable inbox acceptance, while `message_status` reports the separate terminal-notification state. Screen reads are same-host, bounded, untrusted, non-redacting observations and are never a readiness or monitoring loop.
 
@@ -58,6 +58,28 @@ claude plugin update termbrio-team@tbmp --scope user
 ```
 
 Restart Claude Code or run `/reload-plugins` after installation or update.
+
+## Experimental local Antigravity CLI plugin
+
+AGY uses a generated projection of this same plugin source. It has no separate
+Termbrio marketplace entry or independently maintained skill/MCP payload. With
+Termbrio 0.5.10 or newer and `agy` installed, build and validate the projection
+from a checked-out TBMP revision, then install it from the generated directory.
+After plugin 0.4.7 is published, use its immutable source tag:
+
+```powershell
+git clone --depth 1 --branch v0.4.7 https://github.com/termbrio/tbmp.git
+Set-Location tbmp
+$projection = Join-Path $env:TEMP ("termbrio-team-agy-" + [guid]::NewGuid().ToString("N"))
+powershell -NoProfile -File scripts/build-agy-plugin.ps1 -RepositoryRoot . -OutputDirectory $projection
+agy plugin validate $projection
+agy plugin install $projection
+agy plugin list
+```
+
+The source tag fixes the shared skills, MCP endpoint, hooks, and builder
+together. The local AGY path does not promise remote or unattended
+TeamRelay delivery, or publication in the Antigravity marketplace.
 
 ## macOS and Linux
 
