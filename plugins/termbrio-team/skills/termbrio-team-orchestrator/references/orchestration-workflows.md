@@ -12,7 +12,7 @@ tb team schema --json
 tb team layouts --json
 ~~~
 
-Require Termbrio 0.5.9 or newer and root `version: 6`. The root integer is
+Discover the installed Server schema first. Current authoring uses root `version: 7`; version 6 reads with linked attach as the default. Linked resume needs supporting origin and owner Servers. The root integer is
 only the file-schema contract. There is one Team domain and one `tb team` /
 `/teams` API; do not seek a versioned endpoint, store, service, or DTO.
 
@@ -26,7 +26,7 @@ root version, or preserve an unsupported Team shape.
 Prefer one reviewed file for several related changes:
 
 ~~~yaml
-version: 6
+version: 7
 team: optimate
 defaultView: day-shift
 
@@ -104,7 +104,10 @@ Preserve these boundaries:
   workspace path, `runtime.server: PAIR`, and
   `runtime.lifecycleAuthority: team-owner`.
 - `linkedAgents` are persistent canonical references to externally owned
-  members. A link has no local workspace, session, assistant, or lifecycle.
+  members. A link has no local workspace, assistant or lifecycle ownership.
+  It defaults to `startMode: attach`; opt-in `startMode: resume` asks the
+  canonical owner to materialize that member during explicit `team start`.
+  Reconnect, view dispatch and local stop never resume or stop a linked member.
 - `views` select presentation only. A panel target is `member:NAME` or
   `link:ID`; a layout never creates membership or limits Team size.
 - `pattern` and `slot` use the enums returned by `team schema`. `launcher` uses
@@ -314,3 +317,8 @@ semantic policy with raw Enter, Tab, or Escape input.
 - operation id and per-member readiness/attention state when applicable;
 - no identity PIN, bearer token, invitation, secret environment value, or
   prompt body in the handoff.
+
+Expanded patterns are `columns-4`, `columns-5`, `columns-6` with slots
+`column-1` through the column count, and `grid-2x6` with
+`row-1-column-1` through `row-1-column-6`, then row 2. Confirm them in the
+installed `tb team schema --json` before authoring for an older Server.

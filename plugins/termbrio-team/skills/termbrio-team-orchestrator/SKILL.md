@@ -9,7 +9,7 @@ Manage canonical team definitions and lifecycle through non-interactive `tb` CLI
 
 ## Establish the Contract
 
-1. Run `tb --version --json`, then `tb team --help` and `tb team schema --json`. Require Termbrio 0.5.9 or newer for the sole schema-6 Team definition, named views, persistent linked agents, owner-controlled remote placement, one-hop linked visibility, and lifecycle/view separation. Reject every root Team version other than `6`; do not migrate or author compatibility files.
+1. Run `tb --version --json`, then `tb team --help` and `tb team schema --json`. Use the installed schema discovery as the authority. Current authoring/output is version 7; version 6 input normalizes to that same model with linked attach as the default. Version 7, linked resume and the wider layout catalog require Termbrio 0.5.11 or newer; update both origin and owner Servers before using linked resume. Reject older versions; never create compatibility backends.
 2. Run `tb team layouts --json` before choosing a launcher. Read the schema's pattern and slot enums for authoring; renderer discovery reports launcher availability, not the Team layout catalog.
 3. Use `--json` for automation-facing discovery, mutation, and status operations. Read the stable envelope code and process exit code; do not parse human tables or prose errors.
 4. Treat the server-provided schema as the canonical file contract. A template or help surface that emits fields rejected by that schema is a product mismatch: report it and stop instead of copying stale fields.
@@ -19,7 +19,7 @@ Never inspect Termbrio databases or source code to reconstruct a team or identit
 ## Use the First-Team Fast Path
 
 - If the user already supplied member names, working directories, conversation intent, and layout placement, preserve those decisions. Do not rediscover them from databases, source code, provider history, or unrelated team files.
-- For a multi-member team, prefer one portable schema-6 file over a long sequence of atomic edits. Author only `version`, `team`, optional `defaultView`, `workspaces`, `agents`, `linkedAgents`, and `views` as advertised by `tb team schema --json`, then run `tb team validate FILE --json`. Import does not start anything; after import use `tb team start TEAM --view VIEW --dry-run --json` for a revision-bound resolved plan.
+- For a multi-member team, prefer one portable schema-7 file over a long sequence of atomic edits. Author only `version`, `team`, optional `defaultView`, `workspaces`, `agents`, `linkedAgents`, and `views` as advertised by `tb team schema --json`, then run `tb team validate FILE --json`. Import does not start anything; after import use `tb team start TEAM --view VIEW --dry-run --json` for a revision-bound resolved plan.
 - Map an explicitly existing conversation to `resume` and an explicitly new persistent member to `create-once`. Ask only when that material intent is genuinely unknown; do not silently turn a missing resume target into a new conversation.
 - Import the validated definition and verify it with `tb team show TEAM --json`. If the user asked only to define, update, or import the team, stop there. Never infer permission to run `init` or `start`.
 - Ask for user input only for a decision that changes the result materially, such as resume versus create, destructive replacement after a revision conflict, or hidden initialization versus visible start.
@@ -31,7 +31,7 @@ Read the First Team section in [references/orchestration-workflows.md](reference
 - Use atomic `tb team edit TEAM ...` commands for a small change, or export/edit/validate/import for several related fields.
 - Treat `create`, `edit`, `import`, and editor save as definition-only operations. They never initialize or start sessions.
 - Do not use or recreate `team apply`.
-- Do not invoke or emulate Team-file migration. Older root versions are unsupported input; create a reviewed schema-6 file and import it explicitly.
+- Do not invoke or emulate Team-file migration. Version 6 is read as attach-default and exports as version 7; older roots are unsupported. Author a reviewed current-schema file and import it explicitly.
 
 Read [references/orchestration-workflows.md](references/orchestration-workflows.md) for concrete CLI sequences and recovery choices.
 
@@ -41,10 +41,10 @@ Read [references/orchestration-workflows.md](references/orchestration-workflows.
 - Treat the paired Runtime Server as the physical terminal and SessionHost host only. The Owner Server remains the lifecycle, readiness, TeamRelay, and delivery-policy authority for an owner-controlled placed member.
 - Begin with `tb pair list`, `tb pair show PAIR`, `tb pair test PAIR`, and `tb federation status --json` on participating Servers. Pair aliases are authoring selectors; ServerIds, trusted-client grants, and tokens remain Server-owned authority and never enter Team YAML.
 - Define remote paths once under `workspaces`: set `peer: PAIR` and use the path as seen on that remote machine. On the owned member set `workspace: WORKSPACE_KEY`, `runtime.server: PAIR`, and `runtime.lifecycleAuthority: team-owner`. The current schema supports no other lifecycle authority.
-- Treat `linkedAgents` as persistent canonical Team references. Each entry has a local `id` and an exact external `agent: team/member@pair`; it may be placed in views as `link:ID` but never receives create, initialize, resume, stop, workspace, or assistant policy from the linking Team.
+- Treat `linkedAgents` as persistent canonical Team references. Each entry has a local `id` and an exact external `agent: team/member@pair`; it may be placed in views as `link:ID` with `startMode: attach` by default. Explicit `startMode: resume` on `team start` asks its canonical owner to materialize and initialize that member using the owner policy. It never gives the linking Team stop, remove, workspace or assistant ownership. Show/dispatch/reconnect remain attach-only.
 - A direct `[team/]member@pair` message remains routed addressing and does not by itself create a link. Do not confuse that fact with an explicitly authored `linkedAgents` entry.
 - Use the authority already established by the reviewed pairing. Create or widen federation grants only when installed status/help explicitly requires it and the user authorized that mutation; never duplicate a working full-access development pair or guess a GrantId.
-- Preserve Team/member/owner/runtime UUIDs returned by Server responses when diagnosing or granting authority, but do not add them to schema-6 authoring files.
+- Preserve Team/member/owner/runtime UUIDs returned by Server responses when diagnosing or granting authority, but do not add them to schema-7 authoring files.
 - After mutation, verify `tb team show TEAM --json`, `tb team status TEAM --json`, and `tb federation status --json` on the relevant Servers. Check placement reachability/claim state and `tb federation outbox list --json`; a committed local message does not prove remote acceptance.
 
 Read the Remote Placement and Relay Federation section in [references/orchestration-workflows.md](references/orchestration-workflows.md) before performing a multi-Server mutation.

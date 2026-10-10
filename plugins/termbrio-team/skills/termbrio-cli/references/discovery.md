@@ -91,7 +91,7 @@ Keep the returned objects distinct:
 - an outbox entry records one remote Relay delivery attempt and its retry state.
 
 `team/member@pair` and `member@pair` are routed addresses. Sending to one does
-not create a persistent link. A schema-6 Team may separately persist an exact
+not create a persistent link. A canonical Team may separately persist an exact
 external address under `linkedAgents` with a local link id; that link is an
 externally owned collaboration/view target and never a local lifecycle member.
 The pair alias selects the remote Server transport. Use the full team-qualified
