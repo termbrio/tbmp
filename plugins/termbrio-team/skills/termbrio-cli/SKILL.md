@@ -9,7 +9,7 @@ Treat the installed `tb` executable as the command contract. Discover the curren
 
 ## Discover
 
-1. Run `tb --version --json` to identify the installed contract. Require Termbrio 0.5.9 or newer for the sole schema-6 Team definition, named views, canonical linked agents, one-hop linked visibility, and lifecycle/view separation. On an older release, do not claim these guarantees; ask to update Termbrio first. If `--version --json` itself is unavailable, use human help only for the older command surface.
+1. Run `tb --version --json` to identify the installed contract. This plugin targets Termbrio 0.5.12 or newer for owner-verified linked discovery and interactive linked panels. Current Team authoring/output is schema 7; schema 6 inputs normalize to the same model with linked attach as the default. Linked resume requires supporting origin and owner Servers (introduced in 0.5.11). On an older release, report the compatibility limit and discover its actual help instead of claiming the current guarantees. If `--version --json` itself is unavailable, use human help only for the older command surface.
 2. Use `tb --help`, `tb <resource> --help`, or `tb <resource> <verb> --help`. `tb -h <topic>` remains useful for grouped discovery. Do not generate the shell-sensitive `tb ? ...` form.
 3. Prefer the command's `--json` output for automation. Never parse human tables when a machine-readable form exists.
 4. Discover terminal identity with `tb session list [pair] --json`; preserve the returned `sessionId` and pass the returned `canonicalRef` unchanged when a command expects a reference.
@@ -24,7 +24,9 @@ Treat the installed `tb` executable as the command contract. Discover the curren
 
 Read [references/discovery.md](references/discovery.md) for task routing, session identity, and exit-code guidance.
 
-## Resume a Session
+## Attach or Resume a Session
+
+`tb attach CANONICAL_REF` connects only to an existing running session; it never creates, starts or resumes one. Use `tb session resume CANONICAL_REF` only when restoring a stopped/missing named session is part of the user's intent.
 
 1. Resolve the exact terminal with `tb session list --json` and prefer its `canonicalRef`. Use `id:<guid>[@pair]` only after discovery confirms the ID belongs to an existing named session; a bare GUID remains a lexical session name and an id-only session cannot be resumed.
 2. Run `tb session resume CANONICAL_REF`. For a managed member: live and ready attaches only; live but not ready keeps the existing runtime, attaches, and queues readiness work; stopped or missing materializes/restores the named session from the team definition, then queues provider create/resume readiness before attaching. No live runtime is relaunched implicitly.
@@ -40,11 +42,11 @@ Use `--restart` only when the user explicitly wants the live terminal process st
 - Preserve SessionId as terminal identity. Treat names as user-facing references and provider/window ids as refreshable view bindings.
 - Do not restart a live session merely because a local terminal window or cmux surface changed.
 - Prefer `tb session resume` when the desired behavior is "attach if live, restore if stopped."
-- Keep `attach` interactive. Do not claim an attach test passed from a non-interactive command.
+- Keep `attach` interactive by default; `--read-only` is an explicit viewing choice. Linked membership must not silently add that flag. Owner input policy and pairing capability still decide whether interactive access is allowed. Do not claim an attach test passed from a non-interactive command.
 - Treat pairing invites, bearer tokens, and `TB_HOOK_TOKEN` as secrets. `AGENT_PIN` is a six-hex accidental-use guard and `AGENT_IDENTITY` is the combined local identity, not remote authority; do not print the combined identity in user-facing output.
 - Treat a Server peer as an outbound transport record and a trusted client as inbound authority. Do not substitute one object's GrantId or ServerId for the other.
 - Distinguish a routed `[team/]member@pair` recipient from a canonical `linkedAgents` entry. Sending to an address does not create a link; an authored link is a persistent Team reference with a local link id, and defaults to attach. In schema 7, explicit `startMode: resume` asks the canonical owner to start that member during `team start`; it grants no stop, remove or policy-edit ownership. Show/dispatch/reconnect remain attach-only.
-- Keep TeamId, MemberId, OwnerServerId, runtime identity, pair alias, and display names separate. Schema-6 YAML uses pair aliases and remote-machine paths; stable UUIDs and credentials remain Server-owned state.
+- Keep TeamId, MemberId, OwnerServerId, runtime identity, pair alias, and display names separate. Schema-7 YAML uses pair aliases and remote-machine paths; stable UUIDs and credentials remain Server-owned state.
 - Treat `*` as exactly the current primary Team member set. It never recursively expands linked teams or arbitrary peers; name an authorized linked recipient explicitly.
 - Require explicit mutation authority before creating, updating, or revoking federation grants or changing member runtime placement. Grant updates are revision-guarded; fetch fresh federation status after a conflict.
 - Distinguish `tb team submit` terminal input from `tb team dispatch` TeamRelay messaging.

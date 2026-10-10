@@ -186,9 +186,33 @@ linkedAgents:
     agent: other-team/REVIEWER@ek-pc
 ~~~
 
-Use `link:external-reviewer` in a view. The linking Team may resolve and attach
-that exact member only through current owner-authorized evidence. It never
-starts, resumes, initializes, or stops the external member.
+Use `link:external-reviewer` in a view. Omitting `startMode`, or setting it to
+`attach`, connects only to an already running member; it never starts one.
+To restore a stopped linked member during explicit Team start, use a schema-7 file:
+
+~~~yaml
+version: 7
+team: optimate
+linkedAgents:
+  - id: external-reviewer
+    agent: other-team/REVIEWER@ek-pc
+    startMode: resume
+~~~
+
+This fragment is the linked-entry portion of the full Team file. Validate and
+import the complete definition, then run `tb team start optimate --json` when
+starting is authorized. The canonical owner restores a stopped or missing
+named member using its own workspace, assistant, conversation and bootstrap
+policy; a live member is preserved. Both Servers must support linked resume,
+and the pair needs input plus scoped relay-federation authority.
+
+`startMode` belongs to the link, not a view panel. It does not set the provider
+conversation action: `assistant.action` remains on the owner's member. Show,
+view dispatch and panel reconnect only attach. Hide closes local views; Team
+stop stops owned members only and never stops the link, even when its
+`startMode` is `resume`. Linked panels request interactive attach through
+current owner-authorized evidence; membership alone does not make them
+read-only or grant input access.
 
 A direct TeamRelay recipient such as `other-team/REVIEWER@ek-pc` is merely a
 routed address; sending to it does not create a persistent link. `*` targets

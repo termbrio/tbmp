@@ -121,7 +121,7 @@ tb federation outbox list --json
 
 Create generates a stable federation GrantId. Preserve it from the response. Update requires the current revision; after `409`, fetch status/list again and reconcile intentionally. Never guess a pairing GrantId from a peer alias—read the trusted-client list in federation status on the receiving Server.
 
-Schema-6 placement stores `runtime.server` as a paired Server alias and
+Canonical Team placement stores `runtime.server` as a paired Server alias and
 `runtime.lifecycleAuthority: team-owner` on an owned member. Its workspace key
 selects a `workspaces` entry whose optional `peer` and `cwd` describe the path
 as seen on that remote machine. Stable TeamId, MemberId, OwnerServerId,
@@ -131,8 +131,9 @@ placement reachability and current runtime/session evidence.
 
 ## Team files, views, and links
 
-Run `tb team schema --json` before authoring. Root `version` must be exactly
-`6`; other versions are unsupported and are not migrated. The schema's
+Run `tb team schema --json` before authoring. Current authoring/output uses root
+`version: 7`. Version 6 inputs normalize to the same model with linked attach
+as the default; other root versions are rejected. The schema's
 `workspaces`, `agents`, `linkedAgents`, and `views.layouts` fields are the file
 contract. A stale `team template` or help example does not override the schema.
 
@@ -142,9 +143,19 @@ Start reconciles owned members independently, then materializes the selected
 view. `show --view` is an existing-session presentation action, `hide` closes
 matching local views without stopping sessions, and `stop` closes every local
 view owned by the canonical Team while independently stopping owned members.
-Linked members are never start/stop targets.
+Linked members remain externally owned. A link defaults to `startMode: attach`;
+explicit v7 `startMode: resume` lets `team start` ask its canonical owner to
+restore that member using owner policy. Running sessions are kept. Show, view
+dispatch and panel reconnect remain attach-only; local Team stop never stops
+linked members. `startMode` belongs to the linked entry, not a view panel or
+`assistant.action`.
 
-## Session Resume
+## Session Attach and Resume
+
+`tb attach CANONICAL_REF` needs an existing running session and never starts
+one. Preserve an explicit `@pair` on discovered remote references. An entry
+Server may return an owner-verified `id:GUID@tb` proxy route for a linked panel;
+use that returned route without inventing a local binding for a raw remote ID.
 
 `tb session resume <session-target>` is the preferred idempotent entry point for a restorable named terminal. Prefer the returned `canonicalRef`; use `id:<guid>[@pair]` only when discovery confirms that it resolves to an existing named session. Resume rejects id-only sessions and treats a bare GUID as a lexical name. For a managed member: live and ready attaches only; live but not ready keeps the existing runtime, attaches, and queues readiness work; stopped or not-yet-materialized materializes/restores the named session from the canonical definition, then queues provider create/resume readiness using the stored identity when available. The configured conversation name remains a fallback until a provider hook reports a stable provider ID.
 

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "component": "plugins",
+  "version": "0.4.8",
+  "channel": "preview",
+  "status": "ready",
+  "summary": "Clarifies schema-7 linked attach and resume, interactive panels and owner-verified member discovery for Termbrio 0.5.12.",
+  "changes": [
+    {
+      "type": "changed",
+      "area": "team-orchestration",
+      "providers": [
+        "codex",
+        "claude"
+      ],
+      "text": "Author schema-7 Team files and keep schema-6 inputs as attach-default normalization. Show the optional linked startMode: resume setting with an owner-policy YAML example."
+    },
+    {
+      "type": "fixed",
+      "area": "skills",
+      "providers": [
+        "codex",
+        "claude"
+      ],
+      "text": "Remove contradictory claims that linked members can never be resumed. Distinguish explicit Team-start restore from attach-only show, view dispatch and reconnect; local Team stop never stops linked members."
+    },
+    {
+      "type": "changed",
+      "area": "terminal-attach",
+      "providers": [
+        "codex",
+        "claude"
+      ],
+      "text": "Explain interactive linked panels and explicit read-only viewing without granting lifecycle ownership or bypassing owner input and pairing policy."
+    },
+    {
+      "type": "changed",
+      "area": "team-relay",
+      "providers": [
+        "codex",
+        "claude"
+      ],
+      "text": "Document canonical owner-verified one-hop member discovery, unavailable peer results and the separation between linked terminal start mode and provider conversation action."
+    },
+    {
+      "type": "changed",
+      "area": "compatibility",
+      "providers": [
+        "codex",
+        "claude"
+      ],
+      "text": "Requires Termbrio 0.5.12 or newer. Product and plugin versions remain independent; no provider hook behavior is changed by this release."
+    }
+  ]
+}

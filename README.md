@@ -74,9 +74,11 @@ tb --version --json
 tb server status
 ```
 
-The current plugin requires Termbrio 0.5.9 or newer for the sole schema-6 Team
-definition, named views, persistent linked agents, owner-controlled remote
-placement, one-hop linked discovery, and lifecycle/view separation.
+The current plugin requires Termbrio 0.5.12 or newer for schema-7 Team
+authoring, owner-verified linked discovery and interactive linked panels.
+Version 6 inputs normalize to the same model with linked attach as the
+default. A v7 link may opt into `startMode: resume` during explicit Team start;
+view reconnect stays attach-only and local stop never stops linked members.
 Plugin and product versions advance independently; each plugin release records
 its minimum compatible product version.
 

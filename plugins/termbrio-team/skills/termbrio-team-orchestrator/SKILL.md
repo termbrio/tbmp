@@ -9,7 +9,7 @@ Manage canonical team definitions and lifecycle through non-interactive `tb` CLI
 
 ## Establish the Contract
 
-1. Run `tb --version --json`, then `tb team --help` and `tb team schema --json`. Use the installed schema discovery as the authority. Current authoring/output is version 7; version 6 input normalizes to that same model with linked attach as the default. Version 7, linked resume and the wider layout catalog require Termbrio 0.5.11 or newer; update both origin and owner Servers before using linked resume. Reject older versions; never create compatibility backends.
+1. Run `tb --version --json`, then `tb team --help` and `tb team schema --json`. Use the installed schema discovery as the authority. Current authoring/output is version 7; version 6 input normalizes to that same model with linked attach as the default. This plugin targets Termbrio 0.5.12 or newer, which includes current linked discovery and interactive-panel fixes. Version 7, linked resume and the wider layout catalog were introduced in 0.5.11; use supporting origin and owner Servers for linked resume. On an older Server, report the compatibility limit and follow its discovered contract; never create compatibility backends.
 2. Run `tb team layouts --json` before choosing a launcher. Read the schema's pattern and slot enums for authoring; renderer discovery reports launcher availability, not the Team layout catalog.
 3. Use `--json` for automation-facing discovery, mutation, and status operations. Read the stable envelope code and process exit code; do not parse human tables or prose errors.
 4. Treat the server-provided schema as the canonical file contract. A template or help surface that emits fields rejected by that schema is a product mismatch: report it and stop instead of copying stale fields.
@@ -41,7 +41,8 @@ Read [references/orchestration-workflows.md](references/orchestration-workflows.
 - Treat the paired Runtime Server as the physical terminal and SessionHost host only. The Owner Server remains the lifecycle, readiness, TeamRelay, and delivery-policy authority for an owner-controlled placed member.
 - Begin with `tb pair list`, `tb pair show PAIR`, `tb pair test PAIR`, and `tb federation status --json` on participating Servers. Pair aliases are authoring selectors; ServerIds, trusted-client grants, and tokens remain Server-owned authority and never enter Team YAML.
 - Define remote paths once under `workspaces`: set `peer: PAIR` and use the path as seen on that remote machine. On the owned member set `workspace: WORKSPACE_KEY`, `runtime.server: PAIR`, and `runtime.lifecycleAuthority: team-owner`. The current schema supports no other lifecycle authority.
-- Treat `linkedAgents` as persistent canonical Team references. Each entry has a local `id` and an exact external `agent: team/member@pair`; it may be placed in views as `link:ID` with `startMode: attach` by default. Explicit `startMode: resume` on `team start` asks its canonical owner to materialize and initialize that member using the owner policy. It never gives the linking Team stop, remove, workspace or assistant ownership. Show/dispatch/reconnect remain attach-only.
+- Treat `linkedAgents` as persistent canonical Team references. Each entry has a local `id` and an exact external `agent: team/member@pair`; it may be placed in views as `link:ID`. The linked entry defaults to `startMode: attach`; the field does not belong to a view panel. Explicit `startMode: resume` on `team start` asks its canonical owner to materialize and initialize that member using the owner policy. It never gives the linking Team stop, remove, workspace or assistant ownership. Show/dispatch/reconnect remain attach-only.
+- Linked panels request interactive attach by default. External ownership does not make a terminal read-only; input still requires owner policy and pairing authority. Do not silently downgrade a denied interactive request to read-only.
 - A direct `[team/]member@pair` message remains routed addressing and does not by itself create a link. Do not confuse that fact with an explicitly authored `linkedAgents` entry.
 - Use the authority already established by the reviewed pairing. Create or widen federation grants only when installed status/help explicitly requires it and the user authorized that mutation; never duplicate a working full-access development pair or guess a GrantId.
 - Preserve Team/member/owner/runtime UUIDs returned by Server responses when diagnosing or granting authority, but do not add them to schema-7 authoring files.
@@ -50,6 +51,8 @@ Read [references/orchestration-workflows.md](references/orchestration-workflows.
 Read the Remote Placement and Relay Federation section in [references/orchestration-workflows.md](references/orchestration-workflows.md) before performing a multi-Server mutation.
 
 ## Choose Conversation Provisioning
+
+Linked `startMode: resume` decides whether Team start asks the owner to restore a terminal. `assistant.action: resume` decides how that owner opens an existing provider conversation. Keep these choices separate; a linked entry never supplies its own assistant or conversation settings.
 
 - Use `assistant.action: resume` for a named existing conversation. Require `conversation`; a missing provider conversation must fail without creating or renaming a fallback.
 - Use `create-once` for a new persistent member. The first successful provider initialization creates and renames the conversation; the Server records that provisioning before bootstrap, and later starts resume it.
